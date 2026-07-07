@@ -1,10 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/ZmnpLZnF)
-# C# Mobile - Individuele opdracht
-
-Student: Lorenzo Latinne
-
-Email: 11701160@student.pxl.be
-
 # Novelry
 ## Beschrijving
 Novelry is een moderne leesapp waarmee je niet alleen boeken kunt bijhouden, maar ook persoonlijke leesdoelen kunt instellen en je leesgewoonten kunt visualiseren. 
@@ -26,9 +19,6 @@ Je ontdekt boeken op basis van jouw tempo en voorkeuren. Zo wordt lezen weer per
   <img src="Screenshots/Novelry_Explore.png" alt="Explore Screen" height="360" />
   <img src="Screenshots/Novelry_UserLibrary.png" alt="UserLibrary Screen" height="360" />
 </div>
-
-## Screencast
-[Voeg een link toe naar de screencast van je applicatie. Zorg dat zoveel mogelijk features getoond worden!]
 
 ## Bronnen
 MAUI Icons by aathifmahir: https://www.nuget.org/packages/AathifMahir.Maui.MauiIcons.FontAwesome  
