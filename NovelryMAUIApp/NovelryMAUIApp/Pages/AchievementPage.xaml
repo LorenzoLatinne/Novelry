@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.AchievementPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryMAUIApp.ViewModels"
+  xmlns:achievementdto="clr-namespace:NovelryDTO.DTOs.Achievement;assembly=NovelryDTO"
+  xmlns:userdto="clr-namespace:NovelryDTO.DTOs.User;assembly=NovelryDTO"
+  x:DataType="models:AchievementViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Achievements"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--TODO: Include App-wide challenge -->
+      <!--#region App-wide challenge-->
+      <!--
+            <Border
+                Margin="25,10,25,10"
+                BackgroundColor="#002642">
+                <Grid
+                    Padding="20,10"
+                    ColumnDefinitions="*,*,Auto,Auto"
+                    HeightRequest="220"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="10">
+                    <Label
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="3"
+                        FontFamily="InterBold"
+                        FontSize="18"
+                        HorizontalTextAlignment="Start"
+                        Text="Reader's Journey: 100 Books Challenge"
+                        VerticalTextAlignment="Center" />
+                    <mi:MauiIcon
+                        Grid.Row="0"
+                        Grid.Column="3"
+                        HorizontalOptions="Center"
+                        Icon="{mi:FontAwesomeSolid Icon=BookOpenReader}"
+                        IconColor="{StaticResource White}"
+                        Style="{StaticResource Icon}"
+                        VerticalOptions="Center" />
+                    <ProgressBar
+                        Grid.Row="1"
+                        Grid.ColumnSpan="4"
+                        Progress="0.72" />
+                    <Label
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        FontFamily="InterBold"
+                        Text="72 / 100 Books Read" />
+                    <Label
+                        Grid.Row="2"
+                        Grid.Column="2"
+                        Grid.ColumnSpan="2"
+                        FontFamily="InterBold"
+                        HorizontalTextAlignment="End"
+                        Text="72% Complete" />
+                    <Label
+                        Grid.Row="3"
+                        Grid.ColumnSpan="4"
+                        FontSize="12"
+                        LineBreakMode="WordWrap"
+                        Text="Track your progress towards becoming a centurion reader!" />
+                    <Label
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        FontFamily="InterBold"
+                        Text="View Details"
+                        VerticalTextAlignment="End"/>
+                </Grid>
+            </Border>
+            -->
+      <!--#endregion-->
+
+      <!--#region Earned Badges-->
+      <VerticalStackLayout>
+        <Label
+          Margin="25,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="20"
+          Text="Earned Badges"
+        />
+
+        <FlexLayout Margin="25,0" Direction="Row" Wrap="Wrap">
+          <CollectionView ItemsSource="{Binding Achievements}">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="achievementdto:UserAchievementDetailDto">
+                <Border
+                  Margin="5,5"
+                  HeightRequest="200"
+                  VerticalOptions="Center"
+                  WidthRequest="160"
+                >
+                  <Grid
+                    Background="{StaticResource Gray950}"
+                    HorizontalOptions="Center"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="5"
+                    VerticalOptions="Center"
+                  >
+                    <mi:MauiIcon
+                      Grid.Row="0"
+                      Icon="{mi:FontAwesomeSolid Icon=Trophy}"
+                      IconColor="{DynamicResource Primary}"
+                      IconSize="60"
+                      Style="{StaticResource Icon}"
+                    />
+                    <Label
+                      Grid.Row="1"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="16"
+                      HorizontalTextAlignment="Center"
+                      Text="{Binding Achievement.Name}"
+                    />
+                    <Label
+                      Grid.Row="2"
+                      FontSize="14"
+                      HorizontalTextAlignment="Center"
+                      MaxLines="2"
+                      Text="{Binding Achievement.Description}"
+                    />
+                    <Label
+                      Grid.Row="3"
+                      FontSize="12"
+                      HorizontalTextAlignment="Center"
+                      Text="Earned:"
+                      TextColor="{StaticResource Gray500}"
+                    />
+                    <Label
+                      Grid.Row="4"
+                      FontSize="12"
+                      HorizontalTextAlignment="Center"
+                      Text="{Binding AchievedAt, Converter={StaticResource DateTimeToDateConverter}}"
+                      TextColor="{StaticResource Gray500}"
+                    />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </FlexLayout>
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--#region Future Milestones-->
+      <VerticalStackLayout>
+        <Label
+          Margin="25,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="20"
+          Text="Future Milestones"
+        />
+
+        <FlexLayout Margin="25,0" Direction="Row" Wrap="Wrap">
+          <Border Margin="5,5" HeightRequest="200" VerticalOptions="Center" WidthRequest="160">
+            <Grid
+              Background="{StaticResource Gray950}"
+              HorizontalOptions="Center"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+              RowSpacing="5"
+              VerticalOptions="Center"
+            >
+              <mi:MauiIcon
+                Grid.Row="0"
+                Icon="{mi:FontAwesomeSolid Icon=Lightbulb}"
+                IconColor="{StaticResource Gold}"
+                IconSize="60"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                HorizontalTextAlignment="Center"
+                Text="Wisdom Seeker"
+              />
+              <Label
+                Grid.Row="2"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                MaxLines="2"
+                Text="Read 5 non-fiction books"
+              />
+              <ProgressBar
+                Grid.Row="3"
+                Margin="20,0"
+                Progress=".6"
+                ProgressColor="{StaticResource Gold}"
+              />
+              <Label
+                Grid.Row="4"
+                FontSize="12"
+                HorizontalTextAlignment="Center"
+                Text="60% Progress"
+                TextColor="{StaticResource Gray500}"
+              />
+            </Grid>
+          </Border>
+
+          <Border Margin="5,5" HeightRequest="200" VerticalOptions="Center" WidthRequest="160">
+            <Grid
+              Background="{StaticResource Gray950}"
+              HorizontalOptions="Center"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+              RowSpacing="5"
+              VerticalOptions="Center"
+            >
+              <mi:MauiIcon
+                Grid.Row="0"
+                Icon="{mi:FontAwesomeSolid Icon=GraduationCap}"
+                IconColor="{StaticResource Gold}"
+                IconSize="60"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                HorizontalTextAlignment="Center"
+                Text="Classic Scholar"
+              />
+              <Label
+                Grid.Row="2"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                MaxLines="2"
+                Text="Dive into 3 literary classics."
+              />
+              <ProgressBar
+                Grid.Row="3"
+                Margin="20,0"
+                Progress=".33"
+                ProgressColor="{StaticResource Gold}"
+              />
+              <Label
+                Grid.Row="4"
+                FontSize="12"
+                HorizontalTextAlignment="Center"
+                Text="33% Progress"
+                TextColor="{StaticResource Gray500}"
+              />
+            </Grid>
+          </Border>
+
+          <Border Margin="5,5" HeightRequest="200" VerticalOptions="Center" WidthRequest="160">
+            <Grid
+              Background="{StaticResource Gray950}"
+              HorizontalOptions="Center"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+              RowSpacing="5"
+              VerticalOptions="Center"
+            >
+              <mi:MauiIcon
+                Grid.Row="0"
+                Icon="{mi:FontAwesomeSolid Icon=Compass}"
+                IconColor="{StaticResource Gold}"
+                IconSize="60"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                HorizontalTextAlignment="Center"
+                Text="Series Completionist"
+              />
+              <Label
+                Grid.Row="2"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                MaxLines="2"
+                Text="Finish a complete book series"
+              />
+              <ProgressBar
+                Grid.Row="3"
+                Margin="20,0"
+                Progress=".0"
+                ProgressColor="{StaticResource Gold}"
+              />
+              <Label
+                Grid.Row="4"
+                FontSize="12"
+                HorizontalTextAlignment="Center"
+                Text="0% Progress"
+                TextColor="{StaticResource Gray500}"
+              />
+            </Grid>
+          </Border>
+        </FlexLayout>
+      </VerticalStackLayout>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

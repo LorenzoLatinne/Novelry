@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NovelryWebAPI", "NovelryWebAPI\NovelryWebAPI.csproj", "{9A39E063-9FEC-495B-9C57-BB2A02A89DCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NovelryDTO", "..\NovelryDTO\NovelryDTO\NovelryDTO.csproj", "{85EF731B-2522-276C-6EE0-18488062861B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A39E063-9FEC-495B-9C57-BB2A02A89DCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A39E063-9FEC-495B-9C57-BB2A02A89DCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A39E063-9FEC-495B-9C57-BB2A02A89DCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A39E063-9FEC-495B-9C57-BB2A02A89DCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0E205949-B6C8-4697-84C2-F5EBDDFA6B46}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NovelryMAUIApp", "NovelryMAUIApp\NovelryMAUIApp.csproj", "{53B03B39-ED6A-482D-87B8-B742EC14039F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NovelryDTO", "..\NovelryDTO\NovelryDTO\NovelryDTO.csproj", "{85EF731B-2522-276C-6EE0-18488062861B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{53B03B39-ED6A-482D-87B8-B742EC14039F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53B03B39-ED6A-482D-87B8-B742EC14039F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53B03B39-ED6A-482D-87B8-B742EC14039F}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{53B03B39-ED6A-482D-87B8-B742EC14039F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53B03B39-ED6A-482D-87B8-B742EC14039F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85EF731B-2522-276C-6EE0-18488062861B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {112469FC-82FB-43A3-AD20-831559B29C31}
+	EndGlobalSection
+EndGlobal

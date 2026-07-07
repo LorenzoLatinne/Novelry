@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.SettingsPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  Title=""
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:SettingsViewModel"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Settings"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <VerticalStackLayout Margin="25,0">
+        <!--#region Account Options-->
+        <Label
+          Margin="0,10,0,10"
+          FontAttributes="Bold"
+          FontFamily="{DynamicResource AppFontFamily}"
+          Text="Account"
+          TextColor="{StaticResource Gray300}"
+          TextTransform="Uppercase"
+        />
+
+        <!--  Edit Profile  -->
+        <Border StrokeShape="RoundRectangle 10">
+          <Grid
+            Padding="0,20"
+            BackgroundColor="{StaticResource DarkGrey}"
+            RowDefinitions="*,*,*"
+            RowSpacing="20"
+          >
+            <Grid Grid.Row="0" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=User}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontAttributes="Bold"
+                FontSize="16"
+                Text="Edit Profile"
+                VerticalTextAlignment="Center"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Update your personal details and preferences"
+                VerticalTextAlignment="Center"
+              />
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="2"
+                Icon="{mi:FontAwesomeSolid Icon=ChevronRight}"
+                Style="{StaticResource Icon}"
+              />
+            </Grid>
+
+            <!--  Change Password  -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Lock}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontAttributes="Bold"
+                FontSize="16"
+                Text="Change Password"
+                VerticalTextAlignment="Center"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Manage your account security."
+                VerticalTextAlignment="Center"
+              />
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="2"
+                Icon="{mi:FontAwesomeSolid Icon=ChevronRight}"
+                Style="{StaticResource Icon}"
+              />
+            </Grid>
+
+            <!--  Manage Subscriptions  -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=CartPlus}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                Text="Manage Subscriptions"
+                FontAttributes="Bold"
+                VerticalTextAlignment="Center"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="View and update your premium plans."
+                VerticalTextAlignment="Center"
+              />
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="2"
+                Icon="{mi:FontAwesomeSolid Icon=ChevronRight}"
+                Style="{StaticResource Icon}"
+              />
+            </Grid>
+          </Grid>
+        </Border>
+        <!--#endregion-->
+      </VerticalStackLayout>
+
+      <VerticalStackLayout Margin="25,0">
+        <!--#region Appearance Options-->
+        <Label
+          Margin="0,10,0,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontAttributes="Bold"
+          Text="Appearance"
+          TextColor="{StaticResource Gray300}"
+          TextTransform="Uppercase"
+        />
+
+        <!--  Edit Theme  -->
+        <Border>
+          <Grid Padding="0,20" BackgroundColor="{StaticResource DarkGrey}" RowDefinitions="*,*,*">
+            <Grid Grid.Row="0" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Palette}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontAttributes="Bold"
+                FontSize="16"
+                Text="Change main color"
+                VerticalTextAlignment="Center"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Switch the main color of the app."
+                VerticalTextAlignment="Center"
+              />
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="2"
+                Icon="{mi:FontAwesomeSolid Icon=ChevronRight}"
+                Style="{StaticResource Icon}"
+              />
+            </Grid>
+          </Grid>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Command="{Binding ChangeColorCommand}" />
+          </Border.GestureRecognizers>
+        </Border>
+        <Border>
+          <Grid Padding="0,20" BackgroundColor="{DynamicResource DarkGrey}" RowDefinitions="*,*">
+            <Grid Grid.Row="0" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Font}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontAttributes="Bold"
+                FontSize="16"
+                Text="Change font style"
+                VerticalTextAlignment="Center"
+              />
+
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Switch the app’s font family."
+                VerticalTextAlignment="Center"
+              />
+
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="2"
+                Icon="{mi:FontAwesomeSolid Icon=ChevronRight}"
+                Style="{StaticResource Icon}"
+              ></mi:MauiIcon>
+            </Grid>
+          </Grid>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Command="{Binding ChangeFontCommand}" />
+          </Border.GestureRecognizers>
+        </Border>
+        <!--#endregion-->
+      </VerticalStackLayout>
+
+      <VerticalStackLayout Margin="25,0">
+        <!--#region Appearance Options-->
+        <Label
+          Margin="0,10,0,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          Text="About Novelry"
+          TextColor="{StaticResource Gray300}"
+          TextTransform="Uppercase"
+        />
+
+        <!--  Edit Profile  -->
+        <Border>
+          <Grid Padding="0,20" BackgroundColor="{StaticResource DarkGrey}" RowDefinitions="*,*,*">
+            <Grid Grid.Row="0" ColumnDefinitions="*,4*,*" RowDefinitions="*,*">
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=CircleInfo}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontAttributes="Bold"
+                FontSize="16"
+                Text="App Version"
+                VerticalTextAlignment="Center"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Current version: 1.0.0"
+                VerticalTextAlignment="Center"
+              />
+            </Grid>
+          </Grid>
+        </Border>
+        <!--#endregion-->
+      </VerticalStackLayout>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

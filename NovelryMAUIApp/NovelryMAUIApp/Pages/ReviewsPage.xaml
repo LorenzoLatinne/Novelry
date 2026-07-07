@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  xmlns:review="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  x:Class="NovelryMAUIApp.Pages.ReviewsPage"
+  x:DataType="vm:ReviewsPageViewModel"
+  Title=""
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Margin="25,0">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Recent Reviews"
+        VerticalOptions="Center"
+      ></Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--region Review Cards  -->
+      <VerticalStackLayout>
+        <Border Margin="0,10" Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+          <CollectionView ItemsSource="{Binding ReviewsWithBooks}">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="review:BookWithReviewDto">
+                <Border Margin="5">
+                  <Border.GestureRecognizers>
+                    <TapGestureRecognizer
+                      Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DashboardPageViewModel}}, Path=GoToBookDetailCommand}"
+                      CommandParameter="{Binding Book.Id}"
+                    />
+                  </Border.GestureRecognizers>
+                  <Grid
+                    Padding="10"
+                    Background="{StaticResource DarkGrey}"
+                    ColumnDefinitions="0.5*,*,*"
+                    RowDefinitions="*,*,*,*"
+                  >
+                    <Image Grid.RowSpan="4" Source="{Binding Book.ImageUrl}" WidthRequest="40" />
+                    <Label
+                      Grid.Column="1"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="16"
+                      Text="{Binding LatestReview.Username}"
+                    />
+                    <Label
+                      Grid.Row="1"
+                      Grid.Column="1"
+                      Grid.ColumnSpan="2"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="14"
+                      Text="{Binding Book, Converter={StaticResource BookTitleAndAuthorConverter}}"
+                      TextColor="{StaticResource Gray300}"
+                    />
+                    <Label
+                      Grid.Row="2"
+                      Grid.Column="1"
+                      Grid.ColumnSpan="2"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="14"
+                      Text="{Binding LatestReview.Comment}"
+                    />
+                    <HorizontalStackLayout Grid.RowSpan="1" Grid.Column="2" HorizontalOptions="End">
+                      <HorizontalStackLayout Grid.Column="2">
+                        <CollectionView
+                          ItemsSource="{Binding LatestReview.Rating, Converter={StaticResource RatingToStarsConverter}}"
+                          ItemsLayout="HorizontalList"
+                        >
+                          <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="x:Boolean">
+                              <mi:MauiIcon
+                                Icon="{mi:FontAwesomeSolid Icon=Star}"
+                                IconColor="{Binding ., Converter={StaticResource BoolToStarColorConverter}}"
+                                IconSize="10"
+                              />
+                            </DataTemplate>
+                          </CollectionView.ItemTemplate>
+                        </CollectionView>
+                      </HorizontalStackLayout>
+                    </HorizontalStackLayout>
+                    <Label
+                      Text="{Binding LatestReview.CreatedAt.Date, Converter={StaticResource ReviewDateTimeToDateConverter}}"
+                      FontSize="10"
+                      Grid.Row="3"
+                      TextColor="{StaticResource Gray400}"
+                      Grid.Column="2"
+                      HorizontalOptions="End"
+                    />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </Border>
+      </VerticalStackLayout>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.SignupPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryDTO.DTOs.User;assembly=NovelryDTO"
+  xmlns:behaviors="clr-namespace:NovelryMAUIApp.Behaviors"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:SignUpViewModel"
+  Shell.NavBarIsVisible="False"
+>
+  <ContentPage.Behaviors>
+    <behaviors:FadeInPageBehavior Duration="2000" />
+  </ContentPage.Behaviors>
+
+  <ScrollView>
+    <VerticalStackLayout>
+      <!--  region  Header  -->
+      <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+        <Image HeightRequest="32" Source="novelry_logo.png" WidthRequest="32" />
+        <Label
+          FontAttributes="Italic"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="25"
+          Text="Novelry"
+          TextColor="{StaticResource White}"
+          VerticalOptions="Center"
+        />
+      </HorizontalStackLayout>
+
+      <Label
+        Margin="0,0,0,20"
+        HorizontalOptions="Center"
+        Text="Join thousands of book lovers."
+        TextColor="{StaticResource Gray300}"
+      />
+      <!--#endregion-->
+
+      <VerticalStackLayout Padding="20,0">
+        <!--  region Input Fields  -->
+        <!--  Full Name  -->
+        <Label
+          Margin="0,0,0,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          Text="Username"
+          TextColor="{StaticResource White}"
+        />
+        <Border Margin="0,0,0,20">
+          <Grid ColumnDefinitions="*,6*,*">
+            <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=User}" Style="{StaticResource Icon}" />
+            <Entry
+              Grid.Column="1"
+              HorizontalTextAlignment="Center"
+              Text="{Binding Username}"
+              Placeholder="Enter your username"
+            />
+          </Grid>
+        </Border>
+
+        <!--  Email  -->
+        <Label
+          Margin="0,0,0,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          Text="Email Address"
+          TextColor="{StaticResource White}"
+        />
+        <Border Margin="0,0,0,20">
+          <Grid ColumnDefinitions="*,6*,*">
+            <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=Envelope}" Style="{StaticResource Icon}" />
+            <Entry
+              Grid.Column="1"
+              HorizontalTextAlignment="Center"
+              Text="{Binding Email}"
+              Keyboard="Email"
+              Placeholder="john.doe@example.com"
+            />
+          </Grid>
+        </Border>
+
+        <!--  Password  -->
+        <Label
+          Margin="0,0,0,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          Text="Password"
+          TextColor="{StaticResource White}"
+        />
+        <Border Margin="0,0,0,20">
+          <Grid ColumnDefinitions="*,6*,*">
+            <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=Lock}" Style="{StaticResource Icon}" />
+            <Entry
+              Grid.Column="1"
+              HorizontalTextAlignment="Center"
+              IsPassword="{Binding HidePassword}"
+              Text="{Binding Password}"
+              TextChanged="CheckPassword"
+              Placeholder="Enter your password"
+              Unfocused="HidePassword"
+            />
+            <mi:MauiIcon
+              Grid.Column="2"
+              Icon="{mi:FontAwesomeSolid Icon=EyeSlash}"
+              Style="{StaticResource Icon}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleShowPasswordCommand}" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+          </Grid>
+        </Border>
+
+        <!--  Confirm Password  -->
+        <Border Margin="0,0,0,20">
+          <Grid ColumnDefinitions="*,6*,*">
+            <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=Lock}" Style="{StaticResource Icon}" />
+            <Entry
+              Grid.Column="1"
+              HorizontalTextAlignment="Center"
+              IsPassword="{Binding HideConfirmPassword}"
+              Text="{Binding ConfirmPassword}"
+              Placeholder="Confirm your password"
+              Unfocused="HideConfirmPassword"
+            />
+            <mi:MauiIcon
+              Grid.Column="2"
+              Icon="{mi:FontAwesomeSolid Icon=EyeSlash}"
+              Style="{StaticResource Icon}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleShowConfirmPasswordCommand}" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+          </Grid>
+        </Border>
+        <!--#endregion-->
+
+        <VerticalStackLayout Spacing="5">
+          <!--  region Password Requirements  -->
+          <Label Text="Password must contain:" />
+          <Grid ColumnDefinitions="*, 9*">
+            <mi:MauiIcon
+              Grid.Column="0"
+              Icon="{Binding LengthRequirementIcon}"
+              Scale=".5"
+              Style="{StaticResource Icon}"
+              IconColor="{Binding LengthRequirementColor}"
+            />
+            <Label
+              Grid.Column="1"
+              Text="At least 8 characters long"
+              VerticalTextAlignment="Center"
+            />
+          </Grid>
+          <Grid ColumnDefinitions="*, 9*">
+            <mi:MauiIcon
+              Grid.Column="0"
+              Icon="{Binding UppercaseRequirementIcon}"
+              Scale=".5"
+              Style="{StaticResource Icon}"
+              IconColor="{Binding UppercaseRequirementColor}"
+            />
+            <Label Grid.Column="1" Text="One uppercase letter" VerticalTextAlignment="Center" />
+          </Grid>
+          <Grid ColumnDefinitions="*, 9*">
+            <mi:MauiIcon
+              Grid.Column="0"
+              Icon="{Binding NumberRequirementIcon}"
+              Scale=".5"
+              Style="{StaticResource Icon}"
+              IconColor="{Binding NumberRequirementColor}"
+            />
+            <Label Grid.Column="1" Text="One number" VerticalTextAlignment="Center" />
+          </Grid>
+          <!--#endregion-->
+
+          <!--  region Terms and Conditions  -->
+          <HorizontalStackLayout>
+            <CheckBox IsChecked="{Binding AgreeTerms}" />
+            <Label Text="I agree to the " VerticalOptions="Center" />
+            <Label
+              FontAttributes="Bold"
+              Text="Terms of Service"
+              TextColor="{DynamicResource Primary}"
+              VerticalOptions="Center"
+            >
+              <Label.GestureRecognizers>
+                <TapGestureRecognizer />
+              </Label.GestureRecognizers>
+            </Label>
+            <Label Text=" and " VerticalOptions="Center" />
+            <Label
+              FontAttributes="Bold"
+              Text="Privacy Policy."
+              TextColor="{DynamicResource Primary}"
+              VerticalOptions="Center"
+            >
+              <Label.GestureRecognizers>
+                <TapGestureRecognizer />
+              </Label.GestureRecognizers>
+            </Label>
+          </HorizontalStackLayout>
+          <!--#endregion-->
+
+          <!--  region  Buttons  -->
+          <Button
+            Margin="30,10"
+            Background="{DynamicResource Primary}"
+            BorderColor="{DynamicResource Primary}"
+            BorderWidth="1"
+            FontAttributes="Bold"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="18"
+            HeightRequest="40"
+            Text="Create Account"
+            Command="{Binding CreateAccountCommand}"
+            TextColor="{StaticResource White}"
+            WidthRequest="300"
+          />
+
+          <Button
+            Margin="30,10"
+            Background="{StaticResource Black}"
+            BorderColor="{DynamicResource Primary}"
+            BorderWidth="1"
+            FontAttributes="Bold"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="18"
+            HeightRequest="40"
+            Text="Cancel"
+            Command="{Binding CancelCommand}"
+            TextColor="{DynamicResource Primary}"
+            WidthRequest="300"
+          />
+          <!--#endregion-->
+        </VerticalStackLayout>
+
+        <!--  region  Divider  -->
+        <HorizontalStackLayout Margin="0,0,0,10" HorizontalOptions="Center">
+          <Line Stroke="{StaticResource Gray500}" VerticalOptions="Center" X2="100" />
+          <Label Margin="10,0" Text="OR CONTINUE WITH" />
+          <Line Stroke="{StaticResource Gray500}" VerticalOptions="Center" X2="100" />
+        </HorizontalStackLayout>
+        <!--#endregion-->
+
+        <!--  region  Social Logins  -->
+        <Grid ColumnDefinitions="*,*" HorizontalOptions="Center">
+          <Border HeightRequest="40" WidthRequest="150">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10" VerticalOptions="Center">
+              <mi:MauiIcon Icon="{mi:FontAwesomeBrand Icon=Chrome}" Style="{StaticResource Icon}" />
+              <Label
+                HorizontalTextAlignment="Center"
+                Text="Google"
+                VerticalTextAlignment="Center"
+              />
+            </HorizontalStackLayout>
+          </Border>
+
+          <Border Grid.Column="1" HeightRequest="40" WidthRequest="150">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10" VerticalOptions="Center">
+              <mi:MauiIcon Icon="{mi:FontAwesomeBrand Icon=Apple}" Style="{StaticResource Icon}" />
+              <Label HorizontalTextAlignment="Center" Text="Apple" VerticalTextAlignment="Center" />
+            </HorizontalStackLayout>
+          </Border>
+        </Grid>
+        <!--#endregion-->
+      </VerticalStackLayout>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

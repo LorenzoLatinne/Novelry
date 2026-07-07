@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  x:Class="NovelryMAUIApp.Pages.UserBookDetailPage"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  xmlns:userBook="clr-namespace:NovelryDTO.DTOs.UserBook;assembly=NovelryDTO"
+  xmlns:timers="clr-namespace:NovelryDTO.DTOs.Timer;assembly=NovelryDTO"
+  xmlns:genres="clr-namespace:NovelryDTO.DTOs.Genre;assembly=NovelryDTO"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  xmlns:enums="clr-namespace:NovelryDTO.Enums;assembly=NovelryDTO"
+  xmlns:mauiBehaviors="clr-namespace:CommunityToolkit.Maui.Behaviors;assembly=CommunityToolkit.Maui"
+  x:DataType="vm:UserBookDetailViewModel"
+  Shell.NavBarIsVisible="False"
+  Shell.FlyoutBehavior="Disabled"
+>
+  <ScrollView>
+    <VerticalStackLayout Padding="25,0" Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Library Book Details"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--#region Image, Title, Author, Status and Review Button-->
+      <Border Margin="0,10,0,10" Padding="25,10">
+        <VerticalStackLayout
+          BackgroundColor="{StaticResource Gray950}"
+          HorizontalOptions="Center"
+          Spacing="10"
+          VerticalOptions="Center"
+        >
+          <Image HeightRequest="192" Source="{Binding SelectedBook.ImageUrl}" WidthRequest="128" />
+          <FlexLayout Wrap="Wrap" Direction="Row" HorizontalOptions="Center">
+            <CollectionView ItemsSource="{Binding SelectedBook.Genres}">
+              <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Horizontal" />
+              </CollectionView.ItemsLayout>
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="genres:GenreDto">
+                  <Border Padding="8,2" BackgroundColor="#d9a333" StrokeShape="RoundRectangle 50">
+                    <Label
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="12"
+                      Text="{Binding Name}"
+                      TextColor="{StaticResource Black}"
+                      HorizontalTextAlignment="Center"
+                    />
+                  </Border>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </FlexLayout>
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="24"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBook.Title}"
+          />
+
+          <Label
+            FontSize="18"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBook.Authors, Converter={StaticResource BookAuthorsConverter}}"
+            TextColor="{StaticResource Gray300}"
+          />
+          <!--#region User Book Status buttons -->
+          <FlexLayout AlignContent="Center" JustifyContent="SpaceBetween" Direction="Row">
+            <Border
+              Padding="10"
+              WidthRequest="100"
+              BackgroundColor="{Binding Status,
+                          Converter={StaticResource ActiveReadStatusToColorConverter},
+                          ConverterParameter={x:Static enums:UserBookStatus.WantToRead}}"
+            >
+              <Label Text="Want to read" HorizontalTextAlignment="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer
+                  Command="{Binding UpdateUserBookCommand}"
+                  CommandParameter="{x:Static enums:UserBookStatus.WantToRead}"
+                />
+              </Border.GestureRecognizers>
+            </Border>
+
+            <Border
+              Padding="10"
+              WidthRequest="100"
+              BackgroundColor="{Binding Status,
+                          Converter={StaticResource ActiveReadStatusToColorConverter},
+                          ConverterParameter={x:Static enums:UserBookStatus.Reading}}"
+            >
+              <Label
+                Text="Reading"
+                HorizontalTextAlignment="Center"
+                VerticalTextAlignment="Center"
+              />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer
+                  Command="{Binding UpdateUserBookCommand}"
+                  CommandParameter="{x:Static enums:UserBookStatus.Reading}"
+                />
+              </Border.GestureRecognizers>
+            </Border>
+
+            <Border
+              Padding="10"
+              WidthRequest="100"
+              BackgroundColor="{Binding Status,
+                          Converter={StaticResource ActiveReadStatusToColorConverter},
+                          ConverterParameter={x:Static enums:UserBookStatus.Read}}"
+            >
+              <Label Text="Read" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer
+                  Command="{Binding UpdateUserBookCommand}"
+                  CommandParameter="{x:Static enums:UserBookStatus.Read}"
+                />
+              </Border.GestureRecognizers>
+            </Border>
+          </FlexLayout>
+          <!--#endregion-->
+
+          <Button Text="Write a review">
+            <Button.GestureRecognizers>
+              <TapGestureRecognizer
+                Command="{Binding GoToWriteReviewPageCommand}"
+                CommandParameter="{Binding SelectedBook}"
+              />
+            </Button.GestureRecognizers>
+          </Button>
+
+          <Grid RowDefinitions="*,*" ColumnDefinitions="*, *">
+            <Label
+              Text="Current Page: "
+              Grid.Column="0"
+              Grid.Row="0"
+              HorizontalTextAlignment="Center"
+            />
+            <FlexLayout
+              Grid.Column="0"
+              Grid.Row="1"
+              HorizontalOptions="Center"
+              VerticalOptions="Center"
+            >
+              <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=BookOpen}" Scale=".5" />
+              <Entry
+                x:Name="CurrentPageEntry"
+                Text="{Binding UserBook.CurrentPage, Mode=TwoWay}"
+                VerticalTextAlignment="Center"
+                HorizontalTextAlignment="Center"
+                TextColor="{StaticResource Gold}"
+                Keyboard="Numeric"
+                Completed="CurrentPageEntry_Completed"
+              ></Entry>
+            </FlexLayout>
+
+            <Label
+              Text="Total Pages: "
+              Grid.Column="1"
+              Grid.Row="0"
+              HorizontalTextAlignment="Center"
+            />
+            <Entry
+              BackgroundColor="{StaticResource Gray900}"
+              Grid.Column="1"
+              Grid.Row="1"
+              Text="{Binding SelectedBook.TotalPages}"
+              VerticalTextAlignment="Center"
+              HorizontalTextAlignment="Center"
+              IsEnabled="False"
+              TextColor="{StaticResource White}"
+            />
+          </Grid>
+          <Border Padding="10" BackgroundColor="Red">
+            <Label Text="Remove From Library" HorizontalTextAlignment="Center" />
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer
+                Command="{Binding RemoveUserBookFromLibraryCommand}"
+                CommandParameter="{Binding UserBook}"
+              />
+            </Border.GestureRecognizers>
+          </Border>
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+
+      <!--#region Session Statistics-->
+      <Border Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+        <Grid
+          Margin="25,0"
+          Padding="0,10"
+          ColumnDefinitions="*,*"
+          ColumnSpacing="15"
+          RowDefinitions="*,*"
+          RowSpacing="10"
+        >
+          <HorizontalStackLayout Grid.Row="0" Spacing="10">
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=BookOpen}"
+              IconColor="{DynamicResource Primary}"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              FontFamily="{DynamicResource AppFontFamily}"
+              FontSize="18"
+              HorizontalTextAlignment="Center"
+              Text="Session Statistics"
+              TextColor="{StaticResource White}"
+              VerticalTextAlignment="Center"
+            />
+          </HorizontalStackLayout>
+
+          <!--#region Stastics Grid-->
+          <Grid
+            Grid.Row="1"
+            Grid.ColumnSpan="2"
+            ColumnDefinitions="*,*"
+            RowDefinitions="*,*"
+            RowSpacing="10"
+          >
+            <!--#region Hours Read Stat-->
+            <Grid
+              Grid.Row="0"
+              Grid.Column="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Clock}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding TotalHours}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Hours read"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Reviews Written Stat-->
+            <Grid
+              Grid.Row="0"
+              Grid.Column="1"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Hashtag}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding SelectedBookTimers.Count}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Sessions Read"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Average Rating Stat-->
+            <Grid
+              Grid.Row="1"
+              Grid.Column="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Stopwatch}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding LongestSession, StringFormat='{0}h'}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Longest Session"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Achievements Stat-->
+            <Grid
+              Grid.Row="1"
+              Grid.Column="1"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Calendar}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                VerticalOptions="Center"
+                Text="{Binding LastSession, Converter={StaticResource DateTimeToDateConverter}}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Last Session"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+          </Grid>
+          <!--#endregion-->
+        </Grid>
+      </Border>
+      <!--#endregion-->
+
+      <Border>
+        <Grid Margin="25,0" Padding="0,10" RowDefinitions="*,*,*" RowSpacing="10">
+          <Label
+            Text="{Binding ElapsedTime, Converter={StaticResource TimeSpanToStringConverter}}"
+            Grid.Row="0"
+            FontSize="36"
+            FontFamily="OutfitBold"
+            FontAttributes="Bold"
+            HorizontalTextAlignment="Center"
+            VerticalTextAlignment="Center"
+          />
+          <Label
+            Text="Elapsed Time"
+            Grid.Row="1"
+            VerticalTextAlignment="Center"
+            HorizontalTextAlignment="Center"
+          />
+          <Border
+            Grid.Row="2"
+            BackgroundColor="{DynamicResource Primary}"
+            HeightRequest="50"
+            StrokeShape="RoundRectangle 50,50,50,50"
+          >
+            <FlexLayout HorizontalOptions="Center">
+              <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=Play}" Scale="0.8" />
+              <Label
+                Margin="5,0,0,0"
+                Text="Start Reading"
+                VerticalTextAlignment="Center"
+                HorizontalTextAlignment="Center"
+              />
+            </FlexLayout>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding ToggleReadingTimerCommand}" />
+            </Border.GestureRecognizers>
+          </Border>
+        </Grid>
+      </Border>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:book="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:FilteredBooksViewModel"
+  x:Class="NovelryMAUIApp.Pages.FilteredBooksPage"
+  Title="FilteredBookPage"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="My Library"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--#region Search bar-->
+      <Border Margin="25,0">
+        <Grid Margin="25,0" ColumnDefinitions="Auto, *">
+          <mi:MauiIcon
+            Grid.Column="0"
+            Icon="{mi:FontAwesomeSolid Icon=MagnifyingGlass}"
+            Style="{StaticResource Icon}"
+          />
+          <Entry Grid.Column="1" Margin="25,0" Placeholder="Search your library..." />
+        </Grid>
+      </Border>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--#region Books in Library-->
+      <VerticalStackLayout Margin="0,10" Padding="25,0">
+        <CollectionView ItemsSource="{Binding Books}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="book:BookDto">
+              <Border
+                Margin="25,5"
+                Stroke="{StaticResource DarkGrey}"
+                StrokeShape="RoundRectangle 10"
+              >
+                <Grid
+                  Padding="10,5"
+                  BackgroundColor="{StaticResource DarkGrey}"
+                  ColumnDefinitions="Auto, *"
+                  RowDefinitions="Auto"
+                  VerticalOptions="Center"
+                >
+                  <!-- Book Cover -->
+                  <Image
+                    WidthRequest="48"
+                    HeightRequest="72"
+                    Margin="0,5,10,5"
+                    Aspect="AspectFill"
+                    BackgroundColor="#262a33"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Source="{Binding ImageUrl}"
+                  />
+
+                  <!-- Book Details & Progress -->
+                  <Grid Grid.Column="1" RowDefinitions="*,*,*" RowSpacing="2">
+                    <!-- Title -->
+                    <Label
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontAttributes="Bold"
+                      FontSize="14"
+                      HorizontalOptions="Start"
+                      VerticalOptions="Center"
+                      Text="{Binding Title}"
+                    />
+
+                    <!-- Authors -->
+                    <Label
+                      Grid.Row="1"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="12"
+                      HorizontalOptions="Start"
+                      VerticalOptions="Center"
+                      Text="{Binding Authors, Converter={StaticResource BookAuthorsConverter}}"
+                    />
+                  </Grid>
+                </Grid>
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FilteredBooksViewModel}}, Path=GoToBookDetailCommand}"
+                    CommandParameter="{Binding Id}"
+                  />
+                </Border.GestureRecognizers>
+              </Border>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

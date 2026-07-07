@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.WriteReviewPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:WriteReviewViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <VerticalStackLayout Spacing="5">
+    <!--  region Title  -->
+    <Label
+      FontAttributes="Bold"
+      FontFamily="{DynamicResource AppFontFamily}"
+      FontSize="26"
+      HorizontalOptions="Center"
+      Text="Write Review"
+      VerticalOptions="Center"
+    >
+      <Label.GestureRecognizers>
+        <TapGestureRecognizer />
+      </Label.GestureRecognizers>
+    </Label>
+    <!--#endregion-->
+
+    <!--  region  Top line  -->
+    <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+    <!--#endregion-->
+    <VerticalStackLayout Padding="25,0">
+      <Border Padding="20">
+        <Grid ColumnDefinitions="*,2*" RowDefinitions="*,*">
+          <Image
+            Grid.RowSpan="2"
+            MaximumHeightRequest="112"
+            MaximumWidthRequest="80"
+            Source="{Binding SelectedBook.ImageUrl}"
+          />
+          <Label
+            Grid.Column="1"
+            FontFamily="{DynamicResource AppFontFamily}"
+            Text="{Binding SelectedBook.Title}"
+            VerticalTextAlignment="End"
+          />
+          <Label
+            Grid.Row="1"
+            Grid.Column="1"
+            Text="{Binding SelectedBook.Authors, Converter={StaticResource BookAuthorsConverter}}"
+            TextColor="{StaticResource Gray300}"
+            VerticalTextAlignment="Start"
+          />
+        </Grid>
+      </Border>
+
+      <Border Padding="20">
+        <Grid RowDefinitions="*,*" RowSpacing="10">
+          <Label FontFamily="{DynamicResource AppFontFamily}" FontSize="16" Text="Rate this book" />
+          <HorizontalStackLayout Grid.Row="1" Spacing="10">
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              IconColor="{Binding IsFirstStarFilled, Converter={StaticResource BoolToStarColorConverter}}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding SetRatingCommand}" CommandParameter="1" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              IconColor="{Binding IsSecondStarFilled, Converter={StaticResource BoolToStarColorConverter}}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding SetRatingCommand}" CommandParameter="2" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              IconColor="{Binding IsThirdStarFilled, Converter={StaticResource BoolToStarColorConverter}}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding SetRatingCommand}" CommandParameter="3" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              IconColor="{Binding IsFourthStarFilled, Converter={StaticResource BoolToStarColorConverter}}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding SetRatingCommand}" CommandParameter="4" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              IconColor="{Binding IsFifthStarFilled, Converter={StaticResource BoolToStarColorConverter}}"
+            >
+              <mi:MauiIcon.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding SetRatingCommand}" CommandParameter="5" />
+              </mi:MauiIcon.GestureRecognizers>
+            </mi:MauiIcon>
+          </HorizontalStackLayout>
+        </Grid>
+      </Border>
+
+      <Border Padding="20">
+        <VerticalStackLayout>
+          <Label FontFamily="{DynamicResource AppFontFamily}" FontSize="16" Text="Your review" />
+          <Border Margin="0,10" Padding="10" Stroke="{DynamicResource Primary}">
+            <Editor
+              MaxLength="500"
+              MinimumHeightRequest="128"
+              Placeholder="{Binding ReviewTextBoxPlaceholder}"
+              PlaceholderColor="{StaticResource White}"
+              Text="{Binding ReviewComment}"
+            />
+          </Border>
+          <Label HorizontalOptions="End" Text="0/500" />
+        </VerticalStackLayout>
+      </Border>
+      <Button Text="Submit Review" Command="{Binding SubmitReviewCommand}" />
+    </VerticalStackLayout>
+  </VerticalStackLayout>
+</ContentPage>

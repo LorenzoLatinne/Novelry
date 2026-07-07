@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.DashboardPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  xmlns:review="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  Title="Dashboard"
+  x:DataType="vm:DashboardPageViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Dashboard"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding GoToProfilePageCommand}" />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--  region  Welcome Message  -->
+      <VerticalStackLayout Margin="25,10">
+        <Label
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontAttributes="Bold"
+          FontSize="24"
+          Text="{Binding CurrentUser.Username, StringFormat='Welcome back, {0}!'}"
+        />
+        <Label
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="16"
+          Text="Continue your reading journey"
+          TextColor="{StaticResource Gray400}"
+        />
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Current Book Card  -->
+      <Border
+        Margin="25,0"
+        Stroke="{StaticResource DarkGrey}"
+        StrokeShape="RoundRectangle 10"
+        VerticalOptions="Center"
+      >
+        <Grid
+          Padding="20,10"
+          BackgroundColor="{StaticResource DarkGrey}"
+          ColumnDefinitions="Auto,*"
+          RowDefinitions="Auto,Auto,Auto"
+          RowSpacing="5"
+        >
+          <!-- Book Cover -->
+          <Image
+            Grid.RowSpan="2"
+            WidthRequest="64"
+            HeightRequest="96"
+            Margin="0,10"
+            Aspect="AspectFill"
+            BackgroundColor="#262a33"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Source="{Binding CurrentlyReadingBook.Book.ImageUrl}"
+          />
+
+          <!-- Book Title -->
+          <Label
+            Grid.Column="1"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontAttributes="Bold"
+            FontSize="18"
+            Margin="10,0,0,0"
+            HorizontalOptions="Start"
+            VerticalOptions="End"
+            Text="{Binding CurrentlyReadingBook.Book.Title}"
+          />
+
+          <!-- Book Authors -->
+          <Label
+            Grid.Row="1"
+            Grid.Column="1"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="14"
+            Margin="10,0,0,0"
+            HorizontalOptions="Start"
+            VerticalOptions="Start"
+            Text="{Binding CurrentlyReadingBook.Book.Authors, Converter={StaticResource BookAuthorsConverter}}"
+          />
+
+          <!-- Progress Bar -->
+          <Grid Grid.Row="2" Grid.ColumnSpan="2" HeightRequest="24" VerticalOptions="Center">
+            <ProgressBar
+              Progress="{Binding CurrentlyReadingBook.PercentageCompleted}"
+              ProgressColor="{DynamicResource Primary}"
+              ScaleY="4"
+              VerticalOptions="Center"
+            />
+
+            <Label
+              Text="{Binding CurrentlyReadingBook.PercentageString}"
+              FontFamily="{DynamicResource AppFontFamily}"
+              FontSize="12"
+              HorizontalOptions="Center"
+              VerticalOptions="Center"
+              TextColor="White"
+            />
+          </Grid>
+        </Grid>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer
+            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DashboardPageViewModel}}, Path=GoToUserBookDetailCommand}"
+            CommandParameter="{Binding CurrentlyReadingBook.Book.Id}"
+          />
+        </Border.GestureRecognizers>
+      </Border>
+      <!--#endregion-->
+
+      <!--  region Quick Actions  -->
+      <VerticalStackLayout>
+        <!--  Subheader title  -->
+        <Label
+          Margin="25,10"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontAttributes="Bold"
+          FontSize="20"
+          Text="Quick Actions"
+        />
+
+        <Grid ColumnDefinitions="170, 170" ColumnSpacing="10" HorizontalOptions="Center">
+          <!--  region  Search Books  -->
+          <Border
+            Padding="20"
+            BackgroundColor="{DynamicResource Primary}"
+            Stroke="{DynamicResource Primary}"
+          >
+            <VerticalStackLayout BackgroundColor="{DynamicResource Primary}" Spacing="10">
+              <mi:MauiIcon
+                Icon="{mi:FontAwesomeSolid Icon=MagnifyingGlass}"
+                Scale="1"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                HorizontalOptions="Center"
+                Text="Search Books"
+                VerticalTextAlignment="Center"
+              />
+            </VerticalStackLayout>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding GoToSearchCommand}" />
+            </Border.GestureRecognizers>
+          </Border>
+          <!--#endregion-->
+
+          <!--  region Scan ISBN  -->
+          <Border
+            Grid.Column="1"
+            Padding="20"
+            BackgroundColor="{StaticResource Gray900}"
+            Stroke="{StaticResource Gray900}"
+          >
+            <VerticalStackLayout BackgroundColor="{StaticResource Gray900}" Spacing="10">
+              <mi:MauiIcon
+                Icon="{mi:Cupertino Icon=BarcodeViewfinder}"
+                Scale="1.25"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="16"
+                HorizontalOptions="Center"
+                Text="Scan ISBN"
+                VerticalTextAlignment="Center"
+              />
+            </VerticalStackLayout>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding GoToScanPageCommand}" />
+            </Border.GestureRecognizers>
+          </Border>
+          <!--#endregion-->
+        </Grid>
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--  region Your Reading Stats  -->
+      <VerticalStackLayout Margin="25,20,25,0">
+        <!--  Subheader title  -->
+        <Grid Margin="0,0,0,10" ColumnDefinitions="Auto,*">
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="20"
+            HorizontalTextAlignment="Center"
+            Text="Your Reading Stats"
+            FontAttributes="Bold"
+            VerticalTextAlignment="Center"
+          />
+          <Label
+            Grid.Column="1"
+            Margin="0,0,25,0"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="14"
+            HorizontalTextAlignment="End"
+            Text="View All"
+            TextColor="{DynamicResource Primary}"
+            VerticalTextAlignment="Center"
+          >
+            <Label.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding GoToProfilePageCommand}" />
+            </Label.GestureRecognizers>
+          </Label>
+          <FlexLayout />
+        </Grid>
+
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="*">
+          <!--  Books Read  -->
+          <Border
+            Padding="15"
+            BackgroundColor="{StaticResource DarkGrey}"
+            HeightRequest="112"
+            WidthRequest="110"
+          >
+            <Grid BackgroundColor="{StaticResource DarkGrey}" RowDefinitions="*,*">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="30"
+                HorizontalTextAlignment="Center"
+                Text="{Binding BooksReadCount}"
+                TextColor="{DynamicResource Primary}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                LineBreakMode="WordWrap"
+                Text="Books read"
+                VerticalTextAlignment="Center"
+              />
+            </Grid>
+          </Border>
+
+          <!--  Currently Reading  -->
+          <Border
+            Grid.Column="1"
+            Padding="15"
+            BackgroundColor="{StaticResource DarkGrey}"
+            HeightRequest="112"
+            WidthRequest="110"
+          >
+            <Grid BackgroundColor="{StaticResource DarkGrey}" RowDefinitions="*,*">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="30"
+                HorizontalTextAlignment="Center"
+                Text="{Binding CurrentlyReadingCount}"
+                TextColor="{StaticResource Orange}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                LineBreakMode="WordWrap"
+                Text="Currently Reading"
+                VerticalTextAlignment="Center"
+              />
+            </Grid>
+          </Border>
+
+          <!--  Want to read  -->
+          <Border
+            Grid.Column="2"
+            Padding="15"
+            BackgroundColor="{StaticResource DarkGrey}"
+            HeightRequest="112"
+            WidthRequest="110"
+          >
+            <Grid BackgroundColor="{StaticResource DarkGrey}" RowDefinitions="*,*">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="30"
+                HorizontalTextAlignment="Center"
+                Text="{Binding WantToReadCount}"
+                TextColor="{StaticResource Green}"
+              />
+              <Label
+                Grid.Row="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                LineBreakMode="WordWrap"
+                Text="Want to read"
+                VerticalTextAlignment="Center"
+              />
+            </Grid>
+          </Border>
+        </Grid>
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--#region Recent Reviews-->
+      <VerticalStackLayout Margin="25,0">
+        <!-- Subheader title  -->
+        <Grid ColumnDefinitions="Auto,*">
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="20"
+            HorizontalTextAlignment="Center"
+            Text="Recent Reviews"
+            FontAttributes="Bold"
+            VerticalTextAlignment="Center"
+          />
+          <Label
+            Grid.Column="1"
+            Margin="0,0,25,0"
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="14"
+            HorizontalTextAlignment="End"
+            Text="View All"
+            TextColor="{DynamicResource Primary}"
+            VerticalTextAlignment="Center"
+          >
+            <Label.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding GoToReviewsCommand}" />
+            </Label.GestureRecognizers>
+          </Label>
+          <FlexLayout />
+        </Grid>
+
+        <!--region Review Cards  -->
+        <VerticalStackLayout>
+          <Border Margin="0,10" Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+            <CollectionView ItemsSource="{Binding LatestReviews}">
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="review:BookWithReviewDto">
+                  <Border Margin="5">
+                    <Border.GestureRecognizers>
+                      <TapGestureRecognizer
+                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DashboardPageViewModel}}, Path=GoToBookDetailCommand}"
+                        CommandParameter="{Binding Book.Id}"
+                      />
+                    </Border.GestureRecognizers>
+                    <Grid
+                      Padding="10"
+                      Background="{StaticResource DarkGrey}"
+                      ColumnDefinitions="0.5*,*,*"
+                      RowDefinitions="*,*,*,*"
+                    >
+                      <Border
+                        Grid.RowSpan="4"
+                        HeightRequest="70"
+                        StrokeThickness="2"
+                        Background="Transparent"
+                        Stroke="Transparent"
+                        WidthRequest="48"
+                      >
+                        <Image
+                          Source="{Binding Book.ImageUrl}"
+                          WidthRequest="48"
+                          HeightRequest="70"
+                        />
+                      </Border>
+
+                      <Label
+                        Grid.Column="1"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        FontSize="16"
+                        Text="{Binding LatestReview.Username}"
+                      />
+                      <Label
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Grid.ColumnSpan="2"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        FontSize="14"
+                        Text="{Binding Book, Converter={StaticResource BookTitleAndAuthorConverter}}"
+                        TextColor="{StaticResource Gray300}"
+                      />
+                      <Label
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Grid.ColumnSpan="2"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        FontSize="14"
+                        Text="{Binding LatestReview.Comment}"
+                      />
+                      <HorizontalStackLayout
+                        Grid.RowSpan="1"
+                        Grid.Column="2"
+                        HorizontalOptions="End"
+                      >
+                        <HorizontalStackLayout Grid.Column="2">
+                          <CollectionView
+                            ItemsSource="{Binding LatestReview.Rating, Converter={StaticResource RatingToStarsConverter}}"
+                            ItemsLayout="HorizontalList"
+                          >
+                            <CollectionView.ItemTemplate>
+                              <DataTemplate x:DataType="x:Boolean">
+                                <mi:MauiIcon
+                                  Icon="{mi:FontAwesomeSolid Icon=Star}"
+                                  IconColor="{Binding ., Converter={StaticResource BoolToStarColorConverter}}"
+                                  IconSize="10"
+                                />
+                              </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                          </CollectionView>
+                        </HorizontalStackLayout>
+                      </HorizontalStackLayout>
+                      <Label
+                        Text="{Binding LatestReview.CreatedAt.Date, Converter={StaticResource ReviewDateTimeToDateConverter}}"
+                        FontSize="10"
+                        Grid.Row="3"
+                        TextColor="{StaticResource Gray400}"
+                        Grid.Column="2"
+                        HorizontalOptions="End"
+                      />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </Border>
+        </VerticalStackLayout>
+      </VerticalStackLayout>
+
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

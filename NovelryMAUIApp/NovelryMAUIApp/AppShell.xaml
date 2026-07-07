@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+  x:Class="NovelryMAUIApp.AppShell"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+  xmlns:local="clr-namespace:NovelryMAUIApp"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:pages="clr-namespace:NovelryMAUIApp.Pages"
+  Title="NovelryMAUIApp"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ShellContent
+    Title="WelcomePage"
+    ContentTemplate="{DataTemplate pages:WelcomePage}"
+    Route="WelcomePage"
+  />
+
+  <TabBar Route="Main">
+    <Tab Title="Home" mi:MauiIcon.Value="{mi:FontAwesomeSolid Icon=House}">
+      <ShellContent ContentTemplate="{DataTemplate pages:DashboardPage}" Route="DashboardPage" />
+    </Tab>
+    <Tab Title="Explore" mi:MauiIcon.Value="{mi:FontAwesomeSolid Icon=MagnifyingGlass}">
+      <ShellContent ContentTemplate="{DataTemplate pages:ExplorePage}" Route="ExplorePage" />
+    </Tab>
+    <Tab Title="My Library" mi:MauiIcon.Value="{mi:FontAwesomeSolid Icon=Book}">
+      <ShellContent ContentTemplate="{DataTemplate pages:LibraryPage}" Route="LibraryPage" />
+    </Tab>
+    <Tab Title="Profile" mi:MauiIcon.Value="{mi:FontAwesomeSolid Icon=User}">
+      <ShellContent ContentTemplate="{DataTemplate pages:ProfilePage}" Route="ProfilePage" />
+    </Tab>
+  </TabBar>
+
+  <ShellContent Route="ScanPage" Title="Scan" ContentTemplate="{DataTemplate pages:ScanPage}" />
+  <ShellContent
+    Route="BookInfoPage"
+    Title="Book Info"
+    ContentTemplate="{DataTemplate pages:BookInfoPage}"
+  />
+
+  <ShellContent
+    Route="ReviewsPage"
+    Title="Reviews"
+    ContentTemplate="{DataTemplate pages:ReviewsPage}"
+  />
+
+  <ShellContent
+    ContentTemplate="{DataTemplate pages:WriteReviewPage}"
+    Title="WriteReviewPage"
+    Route="WriteReviewPage"
+  />
+
+  <ShellContent
+    Route="UserBookDetailsPage"
+    Title="UserBookDetails"
+    ContentTemplate="{DataTemplate pages:UserBookDetailPage}"
+  />
+
+  <ShellContent
+    Route="FilteredBooksPage"
+    Title="FilteredBooks"
+    ContentTemplate="{DataTemplate pages:FilteredBooksPage}"
+  />
+</Shell>

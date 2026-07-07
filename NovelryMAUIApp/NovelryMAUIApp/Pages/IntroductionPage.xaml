@@ -1,0 +1,160 @@
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.IntroductionPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="20" Padding="25,0">
+      <!--  region  Header  -->
+      <VerticalStackLayout Padding="20,5" Spacing="10">
+        <Image HeightRequest="56" Source="novelry_logo.png" />
+        <Label
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="30"
+          HorizontalOptions="Center"
+          Text="Welcome to Novelry!"
+        />
+        <Label
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="16"
+          HorizontalOptions="Center"
+          Text="Your personal library companion. Discover, track and review your favorite books, all in one place."
+          TextColor="{StaticResource Gray200}"
+        />
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Get Started Button  -->
+      <VerticalStackLayout HorizontalOptions="Center">
+        <Button
+          Margin="30,10"
+          Background="{DynamicResource Primary}"
+          BorderColor="{DynamicResource Primary}"
+          BorderWidth="1"
+          FontAttributes="Bold"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="18"
+          HeightRequest="40"
+          Text="Get Started"
+          TextColor="{StaticResource White}"
+          WidthRequest="300"
+        />
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Section Title  -->
+      <Label
+        Margin="0,0,0,20"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="20"
+        HorizontalOptions="Center"
+        Text="What You Can Do"
+      />
+      <!--#endregion-->
+
+      <!--  region  Features List  -->
+      <VerticalStackLayout Spacing="10">
+        <!--  region Search Books  -->
+        <Border Padding="10">
+          <Grid ColumnDefinitions="*,3*" RowDefinitions="*,*" RowSpacing="5">
+            <mi:MauiIcon
+              Grid.RowSpan="2"
+              Icon="{mi:FontAwesomeSolid Icon=MagnifyingGlass}"
+              Scale="1.25"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              Grid.Row="0"
+              Grid.Column="1"
+              FontFamily="{DynamicResource AppFontFamily}"
+              Text="Search Books"
+              TextColor="{DynamicResource Primary}"
+            />
+            <Label
+              Grid.Row="1"
+              Grid.Column="1"
+              Text="Find books by title, author or genre with our powerful search engine."
+            />
+          </Grid>
+        </Border>
+        <!--#endregion-->
+
+        <!--#region Track Reading-->
+        <Border Padding="10">
+          <Grid ColumnDefinitions="*,3*" RowDefinitions="*,*" RowSpacing="5">
+            <mi:MauiIcon
+              Grid.RowSpan="2"
+              Icon="{mi:FontAwesomeSolid Icon=BookOpen}"
+              Scale="1.25"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              Grid.Row="0"
+              Grid.Column="1"
+              FontFamily="{DynamicResource AppFontFamily}"
+              Text="Track Reading"
+              TextColor="{DynamicResource Primary}"
+            />
+            <Label
+              Grid.Row="1"
+              Grid.Column="1"
+              Text="Organize your books into read, reading and want to read lists."
+            />
+          </Grid>
+        </Border>
+        <!--#endregion-->
+
+        <!--#region Write Reviews-->
+        <Border Padding="10">
+          <Grid ColumnDefinitions="*,3*" RowDefinitions="*,*" RowSpacing="5">
+            <mi:MauiIcon
+              Grid.RowSpan="2"
+              Icon="{mi:FontAwesomeSolid Icon=Star}"
+              Scale="1.25"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              Grid.Row="0"
+              Grid.Column="1"
+              FontFamily="{DynamicResource AppFontFamily}"
+              Text="Write Reviews"
+              TextColor="{DynamicResource Primary}"
+            />
+            <Label
+              Grid.Row="1"
+              Grid.Column="1"
+              Text="Rate and review books to share your thoughts with the community."
+            />
+          </Grid>
+        </Border>
+        <!--#endregion-->
+
+        <!--#region Scan ISBN-->
+        <Border Padding="10">
+          <Grid ColumnDefinitions="*,3*" RowDefinitions="*,*" RowSpacing="5">
+            <mi:MauiIcon
+              Grid.RowSpan="2"
+              Icon="{mi:Cupertino Icon=BarcodeViewfinder}"
+              Scale="1.25"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              Grid.Row="0"
+              Grid.Column="1"
+              FontFamily="{DynamicResource AppFontFamily}"
+              Text="Scan ISBN"
+              TextColor="{DynamicResource Primary}"
+            />
+            <Label
+              Grid.Row="1"
+              Grid.Column="1"
+              Text="Quickly add books to your library by scanning their ISBN codes."
+            />
+          </Grid>
+        </Border>
+      </VerticalStackLayout>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

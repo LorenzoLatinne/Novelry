@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.BookTimerPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <VerticalStackLayout Spacing="5">
+    <!--  region Title  -->
+    <Label
+      FontAttributes="Bold"
+      FontFamily="{DynamicResource AppFontFamily}"
+      FontSize="26"
+      HorizontalOptions="Center"
+      Text="Book Timer"
+      VerticalOptions="Center"
+    >
+      <Label.GestureRecognizers>
+        <TapGestureRecognizer />
+      </Label.GestureRecognizers>
+    </Label>
+    <!--#endregion-->
+
+    <!--  region  Top line  -->
+    <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+    <!--#endregion-->
+
+    <VerticalStackLayout Margin="25,50" VerticalOptions="Center">
+      <!--#region Timer-->
+      <Label
+        Margin="0,10,0,10"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="64"
+        HorizontalTextAlignment="Center"
+        Text="00:23:45"
+        TextColor="{StaticResource White}"
+      />
+
+      <Label
+        Margin="0,10,0,10"
+        FontFamily="{DynamicResource AppFontFamily}"
+        HorizontalTextAlignment="Center"
+        Text="Elapsed Time"
+        TextColor="{StaticResource Gray300}"
+      />
+
+      <Border
+        BackgroundColor="{DynamicResource Primary}"
+        HeightRequest="65"
+        StrokeShape="RoundRectangle 50"
+        WidthRequest="350"
+      >
+        <HorizontalStackLayout HorizontalOptions="Center" Spacing="10" VerticalOptions="Center">
+          <mi:MauiIcon
+            Icon="{mi:Material Icon=PlayArrow}"
+            Scale="1.2"
+            Style="{StaticResource Icon}"
+          />
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="18"
+            HorizontalTextAlignment="Center"
+            Text="Start Reading"
+            VerticalTextAlignment="Center"
+          />
+        </HorizontalStackLayout>
+      </Border>
+    </VerticalStackLayout>
+
+    <VerticalStackLayout Margin="25,20" VerticalOptions="Center">
+      <Border Padding="15,15">
+        <VerticalStackLayout Spacing="10">
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="18"
+            Text="Your Reading Progress"
+          />
+
+          <Border BackgroundColor="{StaticResource Gray900}">
+            <VerticalStackLayout Padding="20,10">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                Text="Today"
+                TextColor="{StaticResource Gray300}"
+              />
+              <Label FontFamily="OutfitBold" FontSize="24" Text="2h 30m" />
+            </VerticalStackLayout>
+          </Border>
+
+          <Border BackgroundColor="{StaticResource Gray900}">
+            <VerticalStackLayout Padding="20,10">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                Text="This Week"
+                TextColor="{StaticResource Gray300}"
+              />
+              <Label FontFamily="OutfitBold" FontSize="24" Text="15h 45m" />
+            </VerticalStackLayout>
+          </Border>
+
+          <Border BackgroundColor="{StaticResource Gray900}">
+            <VerticalStackLayout Padding="20,10">
+              <Label
+                FontFamily="{DynamicResource AppFontFamily}"
+                Text="This Month"
+                TextColor="{StaticResource Gray300}"
+              />
+              <Label FontFamily="OutfitBold" FontSize="24" Text="60h 10m" />
+            </VerticalStackLayout>
+          </Border>
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </VerticalStackLayout>
+</ContentPage>

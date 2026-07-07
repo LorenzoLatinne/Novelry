@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.LibraryPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryDTO.DTOs.UserBook;assembly=NovelryDTO"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:LibraryViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="My Library"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--#region Books in Library-->
+      <VerticalStackLayout Margin="0,10" Padding="25,0">
+        <CollectionView ItemsSource="{Binding UserBooks}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:UserBookDto">
+              <Border
+                Margin="25,5"
+                Stroke="{StaticResource DarkGrey}"
+                StrokeShape="RoundRectangle 10"
+              >
+                <Grid
+                  Padding="10,5"
+                  BackgroundColor="{StaticResource DarkGrey}"
+                  ColumnDefinitions="Auto, *"
+                  RowDefinitions="Auto"
+                  VerticalOptions="Center"
+                >
+                  <!-- Book Cover -->
+                  <Image
+                    WidthRequest="48"
+                    HeightRequest="72"
+                    Margin="0,5,10,5"
+                    Aspect="AspectFill"
+                    BackgroundColor="#262a33"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Source="{Binding Book.ImageUrl}"
+                  />
+
+                  <!-- Book Details & Progress -->
+                  <Grid
+                    Grid.Column="1"
+                    RowDefinitions="*,*,*"
+                    ColumnDefinitions="*,Auto"
+                    RowSpacing="2"
+                  >
+                    <!-- Title -->
+                    <Label
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontAttributes="Bold"
+                      FontSize="14"
+                      HorizontalOptions="Start"
+                      VerticalOptions="Center"
+                      Text="{Binding Book.Title}"
+                    />
+
+                    <!-- Authors -->
+                    <Label
+                      Grid.Row="1"
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="12"
+                      HorizontalOptions="Start"
+                      VerticalOptions="Center"
+                      Text="{Binding Book.Authors, Converter={StaticResource BookAuthorsConverter}}"
+                    />
+
+                    <Border
+                      Grid.Column="1"
+                      WidthRequest="80"
+                      Stroke="Transparent"
+                      BackgroundColor="{Binding Status, Converter={StaticResource ReadingStatusToColorConverter}}"
+                    >
+                      <Label
+                        Text="{Binding Status, Converter={StaticResource StatusToStringConverter}}"
+                        FontSize="12"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center"
+                      />
+                    </Border>
+
+                    <!-- ProgressBar -->
+                    <Grid Grid.Row="2" Grid.ColumnSpan="2" HeightRequest="20">
+                      <ProgressBar
+                        Progress="{Binding PercentageCompleted}"
+                        ProgressColor="{DynamicResource Primary}"
+                        ScaleY="4"
+                        VerticalOptions="Center"
+                      />
+                      <Label
+                        Text="{Binding PercentageString}"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        FontSize="10"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        TextColor="White"
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:LibraryViewModel}}, Path=GoToUserBookDetailCommand}"
+                    CommandParameter="{Binding Book.Id}"
+                  />
+                </Border.GestureRecognizers>
+              </Border>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

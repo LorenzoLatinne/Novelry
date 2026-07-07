@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.WelcomePage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  Title=""
+>
+  <ScrollView>
+    <VerticalStackLayout>
+      <!--  region  Header: Logo & Name  -->
+      <HorizontalStackLayout
+        Margin="0,200,0,25"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+      >
+        <Image
+          HeightRequest="64"
+          HorizontalOptions="Center"
+          Source="novelry_logo.png"
+          VerticalOptions="Center"
+          WidthRequest="64"
+        />
+        <Label
+          FontAttributes="Italic"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="44"
+          Text="Novelry"
+          TextColor="{StaticResource Primary}"
+          VerticalOptions="Center"
+        />
+      </HorizontalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Welcome Text and Subtitle  -->
+      <VerticalStackLayout Margin="0,0,0,30" HorizontalOptions="Center" Spacing="20">
+        <Label
+          FontAttributes="Bold"
+          FontFamily="OutfitBold"
+          FontSize="36"
+          HorizontalOptions="Center"
+          Text="Welcome to Novelry"
+          TextColor="{StaticResource White}"
+        />
+        <Label
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="18"
+          HorizontalTextAlignment="Center"
+          LineBreakMode="WordWrap"
+          MaximumWidthRequest="300"
+          Text="Your world of books — organized, inspired, and uniquely yours."
+          TextColor="{StaticResource Gray300}"
+        />
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Create Account and Sign In Buttons  -->
+      <Button Clicked="CreateAccountButtonClicked" Text="Create Account" />
+
+      <Button
+        Background="{StaticResource Black}"
+        Clicked="SignInButtonClicked"
+        Text="Sign In"
+        TextColor="{StaticResource Primary}"
+      />
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

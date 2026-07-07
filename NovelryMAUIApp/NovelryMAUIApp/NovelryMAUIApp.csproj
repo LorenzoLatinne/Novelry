@@ -1,0 +1,248 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0-android;net9.0-maccatalyst</TargetFrameworks>
+    <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
+    <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
+
+    <!-- Note for MacCatalyst:
+		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
+		When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
+		The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
+		either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
+    <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NovelryMAUIApp</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Display name -->
+    <ApplicationTitle>NovelryMAUIApp</ApplicationTitle>
+
+    <!-- App Identifier -->
+    <ApplicationId>com.companyname.novelrymauiapp</ApplicationId>
+
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
+    <WindowsPackageType>None</WindowsPackageType>
+
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'"
+      >15.0</SupportedOSPlatformVersion
+    >
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'"
+      >15.0</SupportedOSPlatformVersion
+    >
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'"
+      >21.0</SupportedOSPlatformVersion
+    >
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'"
+      >10.0.17763.0</SupportedOSPlatformVersion
+    >
+    <TargetPlatformMinVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'"
+      >10.0.17763.0</TargetPlatformMinVersion
+    >
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'"
+      >6.5</SupportedOSPlatformVersion
+    >
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- App Icon -->
+    <MauiIcon
+      Include="Resources\AppIcon\appicon.svg"
+      ForegroundFile="Resources\AppIcon\appiconfg.svg"
+      Color="#512BD4"
+    />
+
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\novelry_logo.png" Color="#000000" />
+
+    <!-- Images -->
+    <MauiImage Include="Resources\Images\*" />
+
+    <!-- Custom Fonts -->
+    <MauiFont Include="Resources\Fonts\*" />
+
+    <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidResource Remove="Resources\Images\Covers\**" />
+    <Compile Remove="Resources\Images\Covers\**" />
+    <EmbeddedResource Remove="Resources\Images\Covers\**" />
+    <MauiCss Remove="Resources\Images\Covers\**" />
+    <MauiImage Remove="Resources\Images\Covers\**" />
+    <MauiXaml Remove="Resources\Images\Covers\**" />
+    <None Remove="Resources\Images\Covers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <MauiImage Remove="Resources\Images\dotnet_bot.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Images\Authors\georgeorwell.jpg" />
+    <None Remove="Resources\Images\Authors\jrrtolkien.jpg" />
+    <None Remove="Resources\Images\BookCovers\achristmascarolcover.jpg" />
+    <None Remove="Resources\Images\BookCovers\alchemised.jpg" />
+    <None Remove="Resources\Images\BookCovers\aliceinwonderlandcover.jpg" />
+    <None Remove="Resources\Images\BookCovers\animalfarm.jpg" />
+    <None Remove="Resources\Images\BookCovers\animalfarmcover.jpg" />
+    <None Remove="Resources\Images\BookCovers\aprayerforowenmeanycover.jpg" />
+    <None Remove="Resources\Images\BookCovers\catch22cover.jpg" />
+    <None Remove="Resources\Images\BookCovers\harrypotterandthephilosphersstonecover.jpg" />
+    <None Remove="Resources\Images\BookCovers\lordoftheringscover.jpg" />
+    <None Remove="Resources\Images\BookCovers\mobydickcover.jpg" />
+    <None Remove="Resources\Images\BookCovers\prideandprejudicecover.jpg" />
+    <None Remove="Resources\Images\BookCovers\slaughterhousefivecover.jpg" />
+    <None Remove="Resources\Images\BookCovers\theadventuresofhuckleberryfinncover.jpg" />
+    <None Remove="Resources\Images\BookCovers\thecatcherintherye.jpg" />
+    <None Remove="Resources\Images\BookCovers\thegodfathercover.jpg" />
+    <None Remove="Resources\Images\BookCovers\thegreatgatsbycover.jpg" />
+    <None Remove="Resources\Images\BookCovers\theoldmanandtheseacover.jpg" />
+    <None Remove="Resources\Images\BookCovers\thepictureofdoriangraycover.jpg" />
+    <None Remove="Resources\Images\BookCovers\thetalentedmrripley.jpg" />
+    <None Remove="Resources\Images\BookCovers\thisistheonlykingdom.jpg" />
+    <None Remove="Resources\Images\BookCovers\tokillamockingbirdcover.jpg" />
+    <None Remove="Resources\Images\BookCovers\winniethepoohcover.jpg" />
+    <None Remove="Resources\Images\Icons\novelry_logo.png" />
+    <None Remove="Resources\Images\ProfilePictures\janesmith.jpg" />
+    <None Remove="Resources\Images\ProfilePictures\johndoe.jpg" />
+    <None Remove="Resources\Images\ProfilePictures\johndoe.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.Core" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.Cupertino" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome.Brand" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome.Solid" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.Material" Version="5.0.0" />
+    <PackageReference Include="AathifMahir.Maui.MauiIcons.SegoeFluent" Version="5.0.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="12.3.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.120" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.11" />
+    <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <MauiImage Include="Resources\Images\Authors\georgeorwell.jpg" />
+    <MauiImage Include="Resources\Images\Authors\jrrtolkien.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\achristmascarolcover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\alchemised.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\aliceinwonderlandcover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\animalfarmcover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\aprayerforowenmeanycover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\catch22cover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\chroniclesofnarniacover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\harrypotterandthephilosphersstonecover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\lordoftheringscover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\mobydickcover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\prideandprejudicecover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\slaughterhousefivecover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\theadventuresofhuckleberryfinncover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thecatcherintherye.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thegodfathercover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thegreatgatsbycover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\theoldmanandtheseacover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thepictureofdoriangraycover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thetalentedmrripley.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\thisistheonlykingdom.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\tokillamockingbirdcover.jpg" />
+    <MauiImage Include="Resources\Images\BookCovers\winniethepoohcover.jpg" />
+    <MauiImage Include="Resources\Images\Icons\novelry_logo.png" />
+    <MauiImage Include="Resources\Images\ProfilePictures\janesmith.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </MauiImage>
+    <MauiImage Include="Resources\Images\ProfilePictures\johndoe.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </MauiImage>
+    <MauiSplashScreen Include="Resources\Splash\novelry_logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\NovelryDTO\NovelryDTO\NovelryDTO.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Pages\BookInfoPage.xaml.cs">
+      <DependentUpon>BookInfoPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Pages\FilteredBooksPage.xaml.cs">
+      <DependentUpon>FilteredBooksPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Pages\LoginPage.xaml.cs">
+      <DependentUpon>LoginPage.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <MauiXaml Update="Pages\AchievementPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\BookInfoPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\BookTimerPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\DashboardPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\ExplorePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\FilteredBooksPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\IntroductionPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\LibraryPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\LoginPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\ProfilePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\ReviewsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\ScanPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\SettingsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\SignupPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\UserBookDetailPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\WelcomePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Pages\WriteReviewPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Resources\Styles\MyStyles.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+  </ItemGroup>
+</Project>

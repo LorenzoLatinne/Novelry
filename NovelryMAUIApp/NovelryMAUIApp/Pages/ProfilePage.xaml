@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.ProfilePage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  xmlns:model="clr-namespace:NovelryDTO.DTOs.User;assembly=NovelryDTO"
+  x:DataType="vm:ProfileViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalTextAlignment="Center"
+        Text="Profile"
+        VerticalOptions="Center"
+      />
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--#region Profile picture, username and bio-->
+      <VerticalStackLayout Margin="25,0" HorizontalOptions="Center">
+        <Border
+          Margin="0,10,0,15"
+          Background="Transparent"
+          HeightRequest="96"
+          StrokeShape="RoundRectangle 48"
+          StrokeThickness="2"
+          WidthRequest="96"
+        >
+          <Image Source="{Binding User.ImageUrl}" />
+        </Border>
+        <Label
+          Margin="0,0,0,15"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="24"
+          HorizontalTextAlignment="Center"
+          Text="{Binding User.Username}"
+          TextColor="{StaticResource White}"
+        />
+      </VerticalStackLayout>
+      <!--#endregion-->
+
+      <!--TODO: Work on Annual Reading Challenge -->
+      <!--#region Annual Reading Challenge-->
+      <!--
+      <Border
+        Margin="25,0,25,10"
+        Stroke="{StaticResource DarkGrey}"
+        StrokeShape="RoundRectangle 10"
+      >
+        <Grid
+          Margin="25,0"
+          Padding="0,10"
+          ColumnDefinitions="Auto, *"
+          ColumnSpacing="15"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+          RowSpacing="10"
+        >
+          <HorizontalStackLayout Spacing="10">
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=Bullseye}"
+              IconColor="{DynamicResource Primary}"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              FontFamily="InterBold"
+              FontSize="18"
+              HorizontalTextAlignment="Center"
+              Text="Annual Reading Challenge"
+              TextColor="{StaticResource White}"
+              VerticalTextAlignment="Center"
+            />
+          </HorizontalStackLayout>
+          <Label
+            Grid.Row="1"
+            Grid.ColumnSpan="2"
+            FontFamily="Inter"
+            FontSize="14"
+            Text="Progress towards your current reading target."
+            TextColor="{StaticResource Gray300}"
+            VerticalTextAlignment="Center"
+          />
+          <Label
+            Grid.Row="2"
+            Grid.ColumnSpan="2"
+            FontFamily="Inter"
+            FontSize="14"
+            Text="35 of 50 books read"
+            TextColor="{StaticResource White}"
+          />
+          <ProgressBar
+            Grid.Row="3"
+            Grid.ColumnSpan="2"
+            Progress="0.7"
+            ProgressColor="{DynamicResource Primary}"
+          />
+          <Label
+            Grid.Row="4"
+            Grid.ColumnSpan="2"
+            FontFamily="Inter"
+            HorizontalOptions="End"
+            Text="70% Complete"
+            TextColor="{StaticResource White}"
+            VerticalTextAlignment="Center"
+          />
+        </Grid>
+      </Border>
+      -->
+      <!--#endregion-->
+
+      <!--#region Reading Statistics-->
+      <Border
+        Margin="25,0,25,10"
+        Stroke="{StaticResource DarkGrey}"
+        StrokeShape="RoundRectangle 10"
+      >
+        <Grid
+          Margin="25,0"
+          Padding="0,10"
+          ColumnDefinitions="*,*"
+          ColumnSpacing="15"
+          RowDefinitions="*,*"
+          RowSpacing="10"
+        >
+          <HorizontalStackLayout Grid.Row="0" Spacing="10">
+            <mi:MauiIcon
+              Icon="{mi:FontAwesomeSolid Icon=BookOpen}"
+              IconColor="{DynamicResource Primary}"
+              Style="{StaticResource Icon}"
+            />
+            <Label
+              FontFamily="{DynamicResource AppFontFamily}"
+              FontSize="18"
+              HorizontalTextAlignment="Center"
+              Text="Reading Statistics"
+              TextColor="{StaticResource White}"
+              VerticalTextAlignment="Center"
+            />
+          </HorizontalStackLayout>
+
+          <!--#region Stastics Grid-->
+          <Grid
+            Grid.Row="1"
+            Grid.ColumnSpan="2"
+            ColumnDefinitions="*,*"
+            RowDefinitions="*,*"
+            RowSpacing="10"
+          >
+            <!--#region Books Read Stat-->
+            <Grid
+              Grid.Row="0"
+              Grid.Column="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=BookOpenReader}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding BooksRead.Count}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Books read"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Reviews Written Stat-->
+            <Grid
+              Grid.Row="0"
+              Grid.Column="1"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Comment}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding ReviewsWritten.Count}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Reviews Written"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Average Rating Stat-->
+            <Grid
+              Grid.Row="1"
+              Grid.Column="0"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Star}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding AverageRating}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Avg. Rating"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region Achievements Stat-->
+            <Grid
+              Grid.Row="1"
+              Grid.Column="1"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              RowDefinitions="*,*"
+              RowSpacing="-5"
+            >
+              <mi:MauiIcon
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                Icon="{mi:FontAwesomeSolid Icon=Trophy}"
+                IconColor="{DynamicResource Primary}"
+                Style="{StaticResource Icon}"
+              />
+              <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="20"
+                Text="{Binding AchievementsEarned.Count}"
+                TextColor="{StaticResource White}"
+              />
+              <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                FontFamily="{DynamicResource AppFontFamily}"
+                FontSize="14"
+                Text="Achievements"
+                TextColor="{StaticResource White}"
+              />
+            </Grid>
+            <!--#endregion-->
+          </Grid>
+          <!--#endregion-->
+        </Grid>
+      </Border>
+      <!--#endregion-->
+
+      <!--#region Profile Buttons-->
+      <Border Margin="25,5" Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+        <HorizontalStackLayout HeightRequest="48" Spacing="20">
+          <mi:MauiIcon
+            Margin="20,0,0,0"
+            Icon="{mi:FontAwesomeSolid Icon=Trophy}"
+            Style="{StaticResource Icon}"
+          />
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="16"
+            Text="View Achievements"
+            TextColor="{StaticResource White}"
+            VerticalTextAlignment="Center"
+          />
+        </HorizontalStackLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="AchievementsButtonTapped" />
+        </Border.GestureRecognizers>
+      </Border>
+
+      <Border Margin="25,5" Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+        <HorizontalStackLayout HeightRequest="48" Spacing="20">
+          <mi:MauiIcon
+            Margin="20,0,0,0"
+            Icon="{mi:FontAwesomeSolid Icon=Sliders}"
+            Style="{StaticResource Icon}"
+          />
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="16"
+            Text="Settings"
+            TextColor="{StaticResource White}"
+            VerticalTextAlignment="Center"
+          />
+        </HorizontalStackLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="SettingsButtonTapped" />
+        </Border.GestureRecognizers>
+      </Border>
+
+      <Border Margin="25,5" Stroke="{StaticResource DarkGrey}" StrokeShape="RoundRectangle 10">
+        <HorizontalStackLayout HeightRequest="48" Spacing="20">
+          <mi:MauiIcon
+            Margin="20,0,20,0"
+            Icon="{mi:FontAwesomeSolid Icon=Info}"
+            Style="{StaticResource Icon}"
+          />
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="16"
+            Text="App Info"
+            TextColor="{StaticResource White}"
+            VerticalTextAlignment="Center"
+          />
+        </HorizontalStackLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="InfoButtonTapped" />
+        </Border.GestureRecognizers>
+      </Border>
+
+      <Border
+        Margin="25,5"
+        BackgroundColor="{StaticResource Red}"
+        Stroke="{StaticResource Red}"
+        StrokeShape="RoundRectangle 10"
+      >
+        <HorizontalStackLayout HeightRequest="48" Spacing="20">
+          <mi:MauiIcon
+            Margin="20,0,0,0"
+            Icon="{mi:FontAwesomeSolid Icon=Lock}"
+            Style="{StaticResource Icon}"
+          />
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="16"
+            Text="Log Out"
+            TextColor="{StaticResource White}"
+            VerticalTextAlignment="Center"
+          />
+        </HorizontalStackLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Command="{Binding LogOutCommand}" />
+        </Border.GestureRecognizers>
+      </Border>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

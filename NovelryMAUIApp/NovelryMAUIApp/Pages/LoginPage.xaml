@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.LoginPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:behaviors="clr-namespace:NovelryMAUIApp.Behaviors"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:LoginViewModel"
+  Title="{Binding Title}"
+  Shell.NavBarIsVisible="False"
+>
+  <ContentPage.Behaviors>
+    <behaviors:FadeInPageBehavior Duration="2000" />
+  </ContentPage.Behaviors>
+
+  <ScrollView>
+    <VerticalStackLayout>
+      <!--  region  Logo and Name  -->
+      <HorizontalStackLayout Margin="0,30,0,20" HorizontalOptions="Center">
+        <Image HeightRequest="32" Source="novelry_logo.png" WidthRequest="32" />
+        <Label
+          FontAttributes="Italic"
+          FontFamily="{DynamicResource AppFontFamily}"
+          FontSize="25"
+          HorizontalOptions="Center"
+          Text="Novelry"
+          TextColor="{DynamicResource Primary}"
+          VerticalOptions="Center"
+        />
+      </HorizontalStackLayout>
+      <!--#endregion-->
+
+      <!--  region  Log In Header  -->
+      <Label
+        Margin="0,0,0,20"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="30"
+        HorizontalOptions="Center"
+        FontAttributes="Bold"
+        Text="Log In"
+        TextColor="{StaticResource White}"
+      />
+      <!--#endregion-->
+
+      <!--#region Input Fields-->
+
+      <!--  Email  -->
+      <Label
+        Padding="25,10"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontAttributes="Bold"
+        FontSize="16"
+        HorizontalOptions="Start"
+        Text="Email"
+        TextColor="{StaticResource White}"
+      />
+      <Border Margin="25,0">
+        <Grid ColumnDefinitions="*,6*,*">
+          <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=User}" Style="{StaticResource Icon}" />
+          <Entry
+            Grid.Column="1"
+            HorizontalTextAlignment="Center"
+            Keyboard="Email"
+            Placeholder="john.doe@example.com"
+            Text="{Binding Email}"
+          />
+        </Grid>
+      </Border>
+
+      <!--  Password  -->
+      <Label
+        Padding="25,10"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="16"
+        FontAttributes="Bold"
+        HorizontalOptions="Start"
+        Text="Password"
+        TextColor="{StaticResource White}"
+      />
+      <Border Margin="25,0">
+        <Grid ColumnDefinitions="*,6*,*">
+          <mi:MauiIcon Icon="{mi:FontAwesomeSolid Icon=Lock}" Style="{StaticResource Icon}" />
+          <Entry
+            Grid.Column="1"
+            HorizontalTextAlignment="Center"
+            IsPassword="True"
+            Placeholder="Enter your password"
+            Text="{Binding Password}"
+          />
+          <mi:MauiIcon
+            Grid.Column="2"
+            Icon="{mi:FontAwesomeSolid Icon=EyeSlash}"
+            Style="{StaticResource Icon}"
+          >
+            <mi:MauiIcon.GestureRecognizers>
+              <TapGestureRecognizer />
+            </mi:MauiIcon.GestureRecognizers>
+          </mi:MauiIcon>
+        </Grid>
+      </Border>
+      <!--#endregion-->
+
+      <!--  region  Forgot Password  -->
+      <Label
+        Margin="0,0,30,20"
+        HorizontalOptions="End"
+        Text="Forgot Password?"
+        TextColor="{DynamicResource Primary}"
+      />
+      <!--#endregion-->
+
+      <!--  region Sign In Button  -->
+      <Button
+        Margin="30,0,30,30"
+        Background="{DynamicResource Primary}"
+        Command="{Binding LoginCommand}"
+        FontAttributes="Bold"
+        FontSize="16"
+        Text="Sign in"
+        TextColor="{StaticResource White}"
+      />
+      <!--#endregion-->
+
+      <!--  region  OR Divider  -->
+      <HorizontalStackLayout Margin="0,0,0,30" HorizontalOptions="Center">
+        <Line Stroke="{StaticResource Gray500}" VerticalOptions="Center" X2="145" />
+        <Label Margin="20,0" Text="OR" />
+        <Line Stroke="{StaticResource Gray500}" VerticalOptions="Center" X2="145" />
+      </HorizontalStackLayout>
+      <!--#endregion-->
+
+      <!--#region Google & Apple Buttons-->
+      <!--  Google Sign In  -->
+      <Border
+        Margin="30,10"
+        Padding="10"
+        Background="{StaticResource Black}"
+        Stroke="{StaticResource Gray500}"
+        StrokeShape="RoundRectangle 8"
+        StrokeThickness="1"
+      >
+        <FlexLayout AlignContent="Center" JustifyContent="Center">
+          <mi:MauiIcon Margin="5,0" Icon="{mi:FontAwesomeBrand Icon=Chrome}" />
+          <Label
+            FontAttributes="Bold"
+            FontSize="16"
+            Text="Sign in with Google"
+            TextColor="{StaticResource White}"
+            VerticalOptions="Center"
+          />
+        </FlexLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Border.GestureRecognizers>
+      </Border>
+
+      <!--  Apple Sign In  -->
+      <Border
+        Margin="30,10"
+        Padding="10"
+        Background="{StaticResource Black}"
+        Stroke="{StaticResource Gray500}"
+        StrokeShape="RoundRectangle 8"
+        StrokeThickness="1"
+      >
+        <FlexLayout AlignContent="Center" JustifyContent="Center">
+          <mi:MauiIcon Margin="5,0" Icon="{mi:FontAwesomeBrand Icon=Apple}" />
+          <Label
+            FontAttributes="Bold"
+            FontSize="16"
+            Text="Sign in with Apple"
+            TextColor="{StaticResource White}"
+            VerticalOptions="Center"
+          />
+        </FlexLayout>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Border.GestureRecognizers>
+      </Border>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

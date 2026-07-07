@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+  x:Class="NovelryMAUIApp.Pages.BookInfoPage"
+  xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+  xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+  xmlns:models="clr-namespace:NovelryDTO.DTOs.Book;assembly=NovelryDTO"
+  xmlns:userBook="clr-namespace:NovelryDTO.DTOs.UserBook;assembly=NovelryDTO"
+  xmlns:genres="clr-namespace:NovelryDTO.DTOs.Genre;assembly=NovelryDTO"
+  xmlns:vm="clr-namespace:NovelryMAUIApp.ViewModels"
+  x:DataType="vm:BookInfoViewModel"
+  Shell.FlyoutBehavior="Disabled"
+  Shell.NavBarIsVisible="False"
+>
+  <ScrollView>
+    <VerticalStackLayout Padding="25,0" Spacing="5">
+      <!--  region Title  -->
+      <Label
+        FontAttributes="Bold"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="26"
+        HorizontalOptions="Center"
+        Text="Book Info"
+        VerticalOptions="Center"
+      >
+        <Label.GestureRecognizers>
+          <TapGestureRecognizer />
+        </Label.GestureRecognizers>
+      </Label>
+      <!--#endregion-->
+
+      <!--  region  Top line  -->
+      <Line Stroke="{StaticResource Gray900}" StrokeThickness="3" X2="500" />
+      <!--#endregion-->
+
+      <!--#region Image, Title, Author and Review Button-->
+      <Border Margin="0,10,0,10" Padding="25,10">
+        <VerticalStackLayout
+          BackgroundColor="{StaticResource Gray950}"
+          HorizontalOptions="Center"
+          Spacing="10"
+          VerticalOptions="Center"
+        >
+          <Image HeightRequest="192" Source="{Binding SelectedBook.ImageUrl}" WidthRequest="128" />
+          <FlexLayout Wrap="Wrap" Direction="Row" HorizontalOptions="Center">
+            <CollectionView ItemsSource="{Binding SelectedBook.Genres}">
+              <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Horizontal" />
+              </CollectionView.ItemsLayout>
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="genres:GenreDto">
+                  <Border Padding="8,2" BackgroundColor="#d9a333" StrokeShape="RoundRectangle 50">
+                    <Label
+                      FontFamily="{DynamicResource AppFontFamily}"
+                      FontSize="12"
+                      Text="{Binding Name}"
+                      TextColor="{StaticResource Black}"
+                      HorizontalTextAlignment="Center"
+                    />
+                  </Border>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </FlexLayout>
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="24"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBook.Title}"
+          />
+          <Label
+            FontSize="18"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBook.Authors, Converter={StaticResource BookAuthorsConverter}}"
+            TextColor="{StaticResource Gray300}"
+          />
+          <FlexLayout AlignContent="Center" JustifyContent="SpaceEvenly" Direction="Row">
+            <Border BackgroundColor="{DynamicResource Primary}" Padding="10">
+              <Label Text="Add to library" HorizontalTextAlignment="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer
+                  Command="{Binding AddBookToLibraryCommand}"
+                  CommandParameter="{Binding SelectedBook.Id}"
+                />
+              </Border.GestureRecognizers>
+            </Border>
+          </FlexLayout>
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+
+      <!--#region Review stars-->
+      <Border Margin="0,0,0,10" Padding="25,10">
+        <VerticalStackLayout
+          BackgroundColor="{StaticResource Gray950}"
+          HorizontalOptions="Center"
+          Spacing="10"
+          VerticalOptions="Center"
+        >
+          <Label
+            FontFamily="{DynamicResource AppFontFamily}"
+            FontSize="24"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBookWithReview.AverageRating, StringFormat='{0:n2} / 5'}"
+            VerticalTextAlignment="Center"
+          />
+          <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" VerticalOptions="Center">
+            <CollectionView
+              ItemsSource="{Binding SelectedBookWithReview.AverageRating, Converter={StaticResource RatingToStarsConverter}}"
+              ItemsLayout="HorizontalList"
+            >
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="x:Boolean">
+                  <mi:MauiIcon
+                    Icon="{mi:FontAwesomeSolid Icon=Star}"
+                    IconColor="{Binding ., Converter={StaticResource BoolToStarColorConverter}}"
+                    IconSize="12"
+                  />
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </HorizontalStackLayout>
+          <Label
+            FontSize="18"
+            HorizontalTextAlignment="Center"
+            Text="{Binding SelectedBookWithReview.Reviews.Count, StringFormat='{0} review(s)'}"
+            TextColor="{StaticResource Gray300}"
+            VerticalTextAlignment="Center"
+          />
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+
+      <!--#region Synopsis/Description-->
+      <Border Margin="0,0,0,10" Padding="25,10">
+        <VerticalStackLayout Spacing="10">
+          <Label FontFamily="{DynamicResource AppFontFamily}" FontSize="20" Text="Synopsis" />
+          <Label LineBreakMode="WordWrap" Text="{Binding SelectedBook.Description}" />
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+
+      <!--#region User Reviews-->
+      <Border Margin="0,0,0,10" Padding="25,10">
+        <VerticalStackLayout Spacing="10">
+          <Grid VerticalOptions="Center">
+            <Label
+              FontFamily="{DynamicResource AppFontFamily}"
+              FontSize="20"
+              HorizontalTextAlignment="Start"
+              Text="User Reviews"
+              VerticalTextAlignment="Center"
+            />
+            <Label
+              FontFamily="{DynamicResource AppFontFamily}"
+              FontSize="14"
+              HorizontalTextAlignment="End"
+              Text="View More"
+              TextColor="{DynamicResource Primary}"
+              VerticalTextAlignment="Center"
+            >
+              <Label.GestureRecognizers>
+                <TapGestureRecognizer />
+              </Label.GestureRecognizers>
+            </Label>
+          </Grid>
+
+          <CollectionView ItemsSource="{Binding SelectedBookReviews}">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="models:ReviewDto">
+                <Border Margin="5,0" Padding="10" StrokeShape="RoundRectangle 15">
+                  <Grid ColumnDefinitions="Auto,*,*" RowDefinitions="*,*,*">
+                    <Border>
+                      <Image
+                        Grid.Row="0"
+                        Grid.RowSpan="2"
+                        Grid.Column="0"
+                        Aspect="AspectFit"
+                        WidthRequest="48"
+                        Source="{Binding ProfileUrl}"
+                      />
+                    </Border>
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" Margin="10,0,0,0">
+                      <Label
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        Text="{Binding Username}"
+                      />
+                      <HorizontalStackLayout>
+                        <CollectionView
+                          ItemsSource="{Binding Rating, Converter={StaticResource RatingToStarsConverter}}"
+                          ItemsLayout="HorizontalList"
+                        >
+                          <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="x:Boolean">
+                              <mi:MauiIcon
+                                Icon="{mi:FontAwesomeSolid Icon=Star}"
+                                IconColor="{Binding ., Converter={StaticResource BoolToStarColorConverter}}"
+                                IconSize="16"
+                                Style="{StaticResource Icon}"
+                              />
+                            </DataTemplate>
+                          </CollectionView.ItemTemplate>
+                        </CollectionView>
+                      </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                    <Label
+                      Grid.Row="0"
+                      Grid.Column="2"
+                      HorizontalTextAlignment="End"
+                      Text="{Binding CreatedAt.Date, Converter={StaticResource ReviewDateTimeToDateConverter}}"
+                    />
+                    <Label
+                      Grid.Row="2"
+                      Grid.Column="0"
+                      Grid.ColumnSpan="3"
+                      Text="{Binding Comment}"
+                    />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+      <!--#endregion-->
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -1,0 +1,14 @@
+﻿global using CommunityToolkit.Mvvm.ComponentModel;
+global using CommunityToolkit.Mvvm.Input;
+global using MauiIcons.Core;
+global using MauiIcons.Cupertino;
+global using MauiIcons.FontAwesome.Brand;
+global using MauiIcons.FontAwesome.Solid;
+global using MauiIcons.Material;
+global using MauiIcons.SegoeFluent;
+global using NovelryDTO.Enums;
+global using NovelryMAUIApp.Pages;
+global using NovelryMAUIApp.Repositories.Interfaces;
+global using NovelryMAUIApp.Services.Core;
+global using NovelryMAUIApp.Services.Interfaces;
+global using NovelryMAUIApp.ViewModels;
