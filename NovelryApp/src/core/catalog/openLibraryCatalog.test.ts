@@ -202,3 +202,46 @@ describe('Open Library catalog: search', () => {
     expect(await catalog.searchBooks('tolkien')).toEqual({ books: [], total: 3 });
   });
 });
+
+describe('Open Library catalog: search by subject', () => {
+  const doc = (title: string, isbn: string) => ({ title, author_name: ['A. Writer'], isbn: [isbn], subject: ['Science Fiction'] });
+
+  it('returns Books filed under a subject', async () => {
+    const fetch = respondWith({ numFound: 2, docs: [doc('Hyperion', '9780553283686'), doc('Foundation', '9780553293357')] });
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    const { books } = await catalog.searchBySubject('Science Fiction');
+
+    expect(books.map((b) => b.title)).toEqual(['Hyperion', 'Foundation']);
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toContain('subject=Science%20Fiction');
+    expect(url).toContain('/search.json');
+    expect(init.headers['User-Agent']).toMatch(/^Novelry\//);
+  });
+
+  it('does not ask twice for the same subject, however it is written', async () => {
+    const fetch = respondWith({ numFound: 1, docs: [doc('Hyperion', '9780553283686')] });
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    await catalog.searchBySubject('Science Fiction');
+    await catalog.searchBySubject('  science fiction ');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns nothing for a blank subject, without asking', async () => {
+    const fetch = respondWith({});
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    expect(await catalog.searchBySubject('  ')).toEqual({ books: [], total: 0 });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports being offline, or the catalog being unavailable, like the other lookups', async () => {
+    const offline = createOpenLibraryCatalog({ fetch: jest.fn().mockRejectedValue(new TypeError('x')) });
+    const broken = createOpenLibraryCatalog({ fetch: respondWith({}, { ok: false, status: 500 }) });
+
+    await expect(offline.searchBySubject('Romance')).rejects.toBeInstanceOf(CatalogOfflineError);
+    await expect(broken.searchBySubject('Romance')).rejects.toBeInstanceOf(CatalogUnavailableError);
+  });
+});

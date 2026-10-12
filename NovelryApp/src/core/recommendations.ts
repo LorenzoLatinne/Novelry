@@ -84,6 +84,8 @@ const showsStrongLike = (book: TasteBook) => book.favorite || (book.rating !== n
 type Source = { book: TasteBook; weight: number };
 type Affinities = {
   genre: Map<string, number>;
+  /** How each genre was first written, for showing to the Reader. */
+  genreNames: Map<string, string>;
   genreSources: Map<string, Source[]>;
   author: Map<string, Source & { name: string }>;
 };
@@ -91,13 +93,17 @@ type Affinities = {
 /** What the Reader's Books say about which genres and authors they like. */
 function buildAffinities(taste: TasteBook[], now: Date): Affinities {
   const genre = new Map<string, number>();
+  const genreNames = new Map<string, string>();
   const genreSources = new Map<string, Source[]>();
   const author = new Map<string, Source & { name: string }>();
 
   for (const book of taste) {
     const weight = tasteWeight(book, now);
-    for (const key of meaningfulGenres(book.genres).keys()) {
+    for (const [key, name] of meaningfulGenres(book.genres)) {
       genre.set(key, (genre.get(key) ?? 0) + weight);
+      if (!genreNames.has(key)) {
+        genreNames.set(key, name);
+      }
       genreSources.set(key, [...(genreSources.get(key) ?? []), { book, weight }]);
     }
     if (showsStrongLike(book) && weight > 0) {
@@ -109,7 +115,17 @@ function buildAffinities(taste: TasteBook[], now: Date): Affinities {
       }
     }
   }
-  return { genre, genreSources, author };
+  return { genre, genreNames, genreSources, author };
+}
+
+/** The genres the Reader likes best, most liked first (ties in alphabetical order), to look for more Books in. */
+export function topGenres(taste: TasteBook[], now: Date, count: number): string[] {
+  const { genre, genreNames } = buildAffinities(taste, now);
+  return [...genre]
+    .filter(([, affinity]) => affinity > 0)
+    .sort((a, b) => b[1] - a[1] || genreNames.get(a[0])!.localeCompare(genreNames.get(b[0])!, 'en'))
+    .slice(0, Math.max(0, count))
+    .map(([key]) => genreNames.get(key)!);
 }
 
 /** How well one candidate fits, and why. Null when it does not fit at all. */

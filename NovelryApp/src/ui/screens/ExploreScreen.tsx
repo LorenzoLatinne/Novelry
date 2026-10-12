@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Book } from '../../core/catalog/book';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { useAppServices } from '../AppServices';
+import { RecommendationsSection } from './RecommendationsSection';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 
@@ -86,6 +87,7 @@ export function ExploreScreen() {
         state={state}
         onOpen={(isbn) => navigation.navigate('BookDetail', { isbn })}
         onRetry={() => setAttempt((n) => n + 1)}
+        onPickGenre={setQuery}
       />
     </View>
   );
@@ -95,14 +97,21 @@ function Results({
   state,
   onOpen,
   onRetry,
+  onPickGenre,
 }: {
   state: SearchState;
   onOpen: (isbn: string) => void;
   onRetry: () => void;
+  onPickGenre: (genre: string) => void;
 }) {
   switch (state.kind) {
     case 'idle':
-      return <Message text="Search for a book by title or author." />;
+      return (
+        <ScrollView keyboardShouldPersistTaps="handled">
+          <Message text="Search for a book by title or author." />
+          <RecommendationsSection onOpen={onOpen} onPickGenre={onPickGenre} />
+        </ScrollView>
+      );
     case 'searching':
       return (
         <View style={styles.centered}>

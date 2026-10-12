@@ -1052,4 +1052,33 @@ describe('storage', () => {
       expect(await storage.achievements.all()).toHaveLength(1);
     });
   });
+
+  describe('dismissed Recommendations', () => {
+    const T0 = new Date('2026-03-02T11:00:00.000Z');
+
+    it('has none to begin with', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      expect(await storage.dismissals.all()).toEqual([]);
+    });
+
+    it('remembers a dismissed Book, once', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await storage.dismissals.add('9780000000002', T0);
+      await storage.dismissals.add('9780000000002', new Date('2026-04-01T00:00:00.000Z'));
+      await storage.dismissals.add('9780000000019', T0);
+
+      expect(await storage.dismissals.all()).toEqual(['9780000000002', '9780000000019']);
+    });
+
+    it('can be cleared, so dismissed Books may be recommended again', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.dismissals.add('9780000000002', T0);
+
+      await storage.dismissals.clear();
+
+      expect(await storage.dismissals.all()).toEqual([]);
+    });
+  });
 });

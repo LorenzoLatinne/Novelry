@@ -4,6 +4,7 @@ const BASE_URL = 'https://openlibrary.org';
 const COVERS_URL = 'https://covers.openlibrary.org';
 const MAX_GENRES = 5;
 const SEARCH_PAGE_SIZE = 20;
+const SEARCH_FIELDS = 'title,author_name,subject,isbn,cover_i,first_publish_year,number_of_pages_median';
 /** Open Library asks API clients to identify themselves. */
 const USER_AGENT = 'Novelry/0.1 (+https://github.com/LorenzoLatinne/Novelry)';
 
@@ -36,6 +37,8 @@ export type SearchResult = { books: Book[]; total: number };
 export interface BookCatalog {
   getBookByIsbn(isbn: string): Promise<Book | null>;
   searchBooks(query: string, options?: { page?: number }): Promise<SearchResult>;
+  /** Books Open Library files under a subject (a genre), most relevant first. */
+  searchBySubject(subject: string): Promise<SearchResult>;
 }
 
 /** The Reader has no internet connection (or Open Library cannot be reached). */
@@ -61,6 +64,7 @@ function normalizeIsbn(input: string): string {
 export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCatalog {
   const booksByIsbn = new Map<string, Book>();
   const searchResults = new Map<string, SearchResult>();
+  const subjectResults = new Map<string, SearchResult>();
 
   async function getJson<T>(url: string): Promise<T> {
     let response: FetchResponse;
@@ -100,6 +104,23 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
       return book;
     },
 
+    async searchBySubject(subject) {
+      const trimmed = subject.trim();
+      if (!trimmed) {
+        return { books: [], total: 0 };
+      }
+      const cached = subjectResults.get(trimmed.toLowerCase());
+      if (cached) {
+        return cached;
+      }
+      const payload = await getJson<OpenLibrarySearchResponse>(
+        `${BASE_URL}/search.json?subject=${encodeURIComponent(trimmed)}&limit=${SEARCH_PAGE_SIZE}&fields=${SEARCH_FIELDS}`,
+      );
+      const result = toSearchResult(payload);
+      subjectResults.set(trimmed.toLowerCase(), result);
+      return result;
+    },
+
     async searchBooks(query, { page: requestedPage = 1 } = {}) {
       const trimmed = query.trim();
       if (!trimmed) {
@@ -112,22 +133,24 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
         return cached;
       }
 
-      const fields =
-        'title,author_name,subject,isbn,cover_i,first_publish_year,number_of_pages_median';
       const payload = await getJson<OpenLibrarySearchResponse>(
-        `${BASE_URL}/search.json?q=${encodeURIComponent(trimmed)}&page=${page}&limit=${SEARCH_PAGE_SIZE}&fields=${fields}`,
+        `${BASE_URL}/search.json?q=${encodeURIComponent(trimmed)}&page=${page}&limit=${SEARCH_PAGE_SIZE}&fields=${SEARCH_FIELDS}`,
       );
-      const docs = Array.isArray(payload.docs) ? payload.docs : [];
-      const result: SearchResult = {
-        books: docs.flatMap((doc) => {
-          const book = searchDocToBook(doc);
-          return book ? [book] : [];
-        }),
-        total: payload.numFound ?? 0,
-      };
+      const result = toSearchResult(payload);
       searchResults.set(cacheKey, result);
       return result;
     },
+  };
+}
+
+function toSearchResult(payload: OpenLibrarySearchResponse): SearchResult {
+  const docs = Array.isArray(payload.docs) ? payload.docs : [];
+  return {
+    books: docs.flatMap((doc) => {
+      const book = searchDocToBook(doc);
+      return book ? [book] : [];
+    }),
+    total: payload.numFound ?? 0,
   };
 }
 
