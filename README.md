@@ -1,3 +1,5 @@
+<p align="center"><img src="NovelryApp/assets/icon.png" alt="Novelry logo" width="160" /></p>
+
 # Novelry
 
 A personal reading companion. Track what you read, set goals, time your reading sessions and get recommendations that explain themselves. No social feed and no pressure, just your own reading.
