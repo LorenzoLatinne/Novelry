@@ -1,9 +1,9 @@
 import type { Book } from './catalog/book';
 import { viewLibrary } from './libraryView';
-import type { LibraryItem } from './storage/storage';
+import type { LibraryEntryWithBook } from './storage/storage';
 import type { Shelf } from './shelf';
 
-function item(isbn: string, shelf: Shelf, book: Partial<Book> | null): LibraryItem {
+function item(isbn: string, shelf: Shelf, book: Partial<Book> | null): LibraryEntryWithBook {
   return {
     entry: { isbn, shelf, currentPage: 0, addedAt: '2026-01-01T00:00:00.000Z' },
     book: book && { isbn, title: 'Untitled', authors: [], genres: [], ...book },

@@ -206,7 +206,7 @@ describe('storage', () => {
         "INSERT INTO library_entries (isbn, shelf, current_page, added_at) VALUES ('9780000000002', 'read', 10, '2000-01-01')",
       );
 
-      const items = await storage.library.listItems();
+      const items = await storage.library.listWithBooks();
 
       expect(items.map((i) => [i.entry.isbn, i.book?.title ?? null])).toEqual([
         ['9780000000002', null],

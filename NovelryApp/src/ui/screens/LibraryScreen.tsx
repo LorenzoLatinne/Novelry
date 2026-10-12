@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { viewLibrary } from '../../core/libraryView';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
-import type { LibraryItem } from '../../core/storage/storage';
+import type { LibraryEntryWithBook } from '../../core/storage/storage';
 import { useAppServices } from '../AppServices';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
@@ -18,7 +18,7 @@ const SHELF_CHOICES: { value: ShelfChoice; label: string }[] = [
 export function LibraryScreen() {
   const { storage } = useAppServices();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [items, setItems] = useState<LibraryItem[] | null>(null);
+  const [items, setItems] = useState<LibraryEntryWithBook[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [shelf, setShelf] = useState<ShelfChoice>('all');
   const [query, setQuery] = useState('');
@@ -28,7 +28,7 @@ export function LibraryScreen() {
     // Reload whenever the Library tab regains focus, e.g. after adding a Book.
     const load = () =>
       storage.library
-        .listItems()
+        .listWithBooks()
         .then((loaded) => {
           if (active) {
             setItems(loaded);

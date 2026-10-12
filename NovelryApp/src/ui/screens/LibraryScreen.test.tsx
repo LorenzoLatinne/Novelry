@@ -1,10 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { createOpenLibraryCatalog } from '../../core/catalog/openLibraryCatalog';
+import type { Shelf } from '../../core/shelf';
 import { openStorage } from '../../core/storage/storage';
 import { createTestDatabase } from '../../core/storage/testDatabase';
 import { RootNavigator } from '../RootNavigator';
 
-async function openLibrary(books: { isbn: string; title: string; author: string; shelf: string }[]) {
+type TestBook = { isbn: string; title: string; author: string; shelf: Shelf };
+
+async function openLibrary(books: TestBook[]) {
   const database = createTestDatabase();
   const storage = await openStorage(database);
   for (const { isbn, title, author, shelf } of books) {
@@ -15,7 +18,7 @@ async function openLibrary(books: { isbn: string; title: string; author: string;
   await render(<RootNavigator services={{ storage, catalog }} />);
 }
 
-const LIBRARY = [
+const LIBRARY: TestBook[] = [
   { isbn: '9780261102354', title: 'The Hobbit', author: 'J.R.R. Tolkien', shelf: 'read' },
   { isbn: '9780441172719', title: 'Dune', author: 'Frank Herbert', shelf: 'reading' },
   { isbn: '9780141439587', title: 'Emma', author: 'Jane Austen', shelf: 'want-to-read' },
@@ -40,6 +43,11 @@ describe('LibraryScreen', () => {
     expect(screen.getByText('Dune')).toBeTruthy();
     expect(screen.queryByText('The Hobbit')).toBeNull();
     expect(screen.queryByText('Emma')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'All' }));
+
+    expect(screen.getByText('The Hobbit')).toBeTruthy();
+    expect(screen.getByText('Emma')).toBeTruthy();
   });
 
   it('narrows by a search on title or author', async () => {

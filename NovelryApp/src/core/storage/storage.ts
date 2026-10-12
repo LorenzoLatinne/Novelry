@@ -11,12 +11,12 @@ export type LibraryEntry = {
 };
 
 /** A Library Entry with its Book; the Book is null if its details were never saved. */
-export type LibraryItem = { entry: LibraryEntry; book: Book | null };
+export type LibraryEntryWithBook = { entry: LibraryEntry; book: Book | null };
 
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
-  listItems(): Promise<LibraryItem[]>;
+  listWithBooks(): Promise<LibraryEntryWithBook[]>;
   find(isbn: string): Promise<LibraryEntry | null>;
   /** Puts a Book on the Want to read Shelf. A Book already in the Library is left untouched. */
   add(book: Book): Promise<void>;
@@ -110,18 +110,18 @@ export async function openStorage(
     library: {
       async list() {
         const rows = await database.getAll<EntryRow>(
-          `SELECT ${ENTRY_COLUMNS} FROM library_entries ORDER BY added_at`,
+          `SELECT ${ENTRY_COLUMNS} FROM library_entries ORDER BY added_at, isbn`,
         );
         return rows.map(toEntry);
       },
-      async listItems() {
+      async listWithBooks() {
         const rows = await database.getAll<EntryRow & Partial<Record<`b_${keyof BookRow}`, unknown>>>(
           `SELECT e.isbn, e.shelf, e.current_page, e.added_at,
                   b.isbn AS b_isbn, b.title AS b_title, b.authors AS b_authors, b.genres AS b_genres,
                   b.page_count AS b_page_count, b.published_year AS b_published_year,
                   b.cover_url AS b_cover_url, b.description AS b_description
            FROM library_entries e LEFT JOIN books b ON b.isbn = e.isbn
-           ORDER BY e.added_at`,
+           ORDER BY e.added_at, e.isbn`,
         );
         return rows.map((row) => ({
           entry: toEntry(row),
