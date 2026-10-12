@@ -1,19 +1,44 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { MAX_YEARLY_BOOKS_GOAL } from '../../core/storage/storage';
-import type { YearlyGoalProgress } from '../../core/yearlyGoal';
 import { colors } from '../theme';
 
-/** The Reader's yearly Books goal: set, change or remove it, and see how far along they are. */
-export function YearlyGoalCard({
-  year,
+export type GoalProgressView = {
+  /** E.g. "2 of 8 books". */
+  headline: string;
+  percent: number;
+  reached: boolean;
+};
+
+/** Everything the Reader reads on a goal card, so one card serves every kind of goal. */
+export type GoalCopy = {
+  /** Heading while a goal is set. */
+  heading: string;
+  /** Heading that invites the Reader to set a goal. */
+  promptHeading: string;
+  prompt: string;
+  inputLabel: string;
+  placeholder: string;
+  invalidInput: string;
+  setButton: string;
+  changeButton: string;
+  removeButton: string;
+  removeTitle: string;
+  removeMessage: string;
+  barLabel: (percent: number) => string;
+};
+
+/** A reading goal: set, change or remove the target, and see how far along the Reader is. */
+export function GoalCard({
+  copy,
   progress,
+  currentTarget,
   onSet,
   onRemove,
 }: {
-  year: number;
+  copy: GoalCopy;
   /** Null when no goal is set. */
-  progress: YearlyGoalProgress | null;
+  progress: GoalProgressView | null;
+  currentTarget: number | null;
   /** Resolves to an error message for the Reader, or null when the goal was saved. */
   onSet: (target: number) => Promise<string | null>;
   /** Resolves to an error message for the Reader, or null when the goal was removed. */
@@ -26,7 +51,7 @@ export function YearlyGoalCard({
   async function save() {
     const trimmed = text.trim();
     if (!/^\d+$/.test(trimmed)) {
-      setError(`Enter a whole number of books, from 1 to ${MAX_YEARLY_BOOKS_GOAL}.`);
+      setError(copy.invalidInput);
       return;
     }
     const problem = await onSet(Number(trimmed));
@@ -44,7 +69,7 @@ export function YearlyGoalCard({
   }
 
   function confirmRemove() {
-    Alert.alert('Remove your yearly goal?', 'Your finished books are not affected.', [
+    Alert.alert(copy.removeTitle, copy.removeMessage, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => setError(await onRemove()) },
     ]);
@@ -55,15 +80,13 @@ export function YearlyGoalCard({
   return (
     <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.title}>
-        {progress ? `Reading goal ${progress.year}` : `Set a reading goal for ${year}`}
+        {progress ? copy.heading : copy.promptHeading}
       </Text>
       {progress ? (
         <>
-          <Text style={styles.headline}>
-            {progress.finished} of {progress.target} {progress.target === 1 ? 'book' : 'books'}
-          </Text>
+          <Text style={styles.headline}>{progress.headline}</Text>
           <View
-            accessibilityLabel={`${progress.percent} percent of your yearly goal`}
+            accessibilityLabel={copy.barLabel(progress.percent)}
             accessibilityRole="progressbar"
             accessibilityValue={{ min: 0, max: 100, now: progress.percent }}
             style={styles.track}
@@ -75,29 +98,39 @@ export function YearlyGoalCard({
           </Text>
         </>
       ) : (
-        <Text style={styles.detail}>How many books do you want to finish this year?</Text>
+        <Text style={styles.detail}>{copy.prompt}</Text>
       )}
 
       {showForm ? (
         <View style={styles.row}>
           <TextInput
-            accessibilityLabel="Books to read this year"
+            accessibilityLabel={copy.inputLabel}
             keyboardType="number-pad"
             onChangeText={(value) => {
               setText(value);
               setError(null);
             }}
             onSubmitEditing={save}
-            placeholder={progress ? String(progress.target) : 'e.g. 12'}
+            placeholder={currentTarget === null ? copy.placeholder : String(currentTarget)}
             placeholderTextColor={colors.textMuted}
             style={styles.input}
             value={text}
           />
-          <Pressable accessibilityRole="button" onPress={save} style={styles.button}>
-            <Text style={styles.buttonText}>{progress ? 'Save' : 'Set goal'}</Text>
+          <Pressable
+            accessibilityLabel={`${progress ? 'Save' : copy.setButton}: ${copy.inputLabel}`}
+            accessibilityRole="button"
+            onPress={save}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>{progress ? 'Save' : copy.setButton}</Text>
           </Pressable>
           {progress ? (
-            <Pressable accessibilityRole="button" onPress={cancelEditing} style={styles.linkButton}>
+            <Pressable
+              accessibilityLabel={`Cancel changing: ${copy.inputLabel}`}
+              accessibilityRole="button"
+              onPress={cancelEditing}
+              style={styles.linkButton}
+            >
               <Text style={styles.linkText}>Cancel</Text>
             </Pressable>
           ) : null}
@@ -105,10 +138,10 @@ export function YearlyGoalCard({
       ) : (
         <View style={styles.row}>
           <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={styles.linkButton}>
-            <Text style={styles.linkText}>Change goal</Text>
+            <Text style={styles.linkText}>{copy.changeButton}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={confirmRemove} style={styles.linkButton}>
-            <Text style={styles.removeText}>Remove goal</Text>
+            <Text style={styles.removeText}>{copy.removeButton}</Text>
           </Pressable>
         </View>
       )}

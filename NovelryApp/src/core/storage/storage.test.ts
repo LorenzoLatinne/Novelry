@@ -940,6 +940,40 @@ describe('storage', () => {
       await expect(storage.goals.setYearlyBooks(1)).resolves.toBeUndefined();
     });
 
+    it('has no daily goal until one is set, and sets, changes and removes it', async () => {
+      const storage = await openStorage(createTestDatabase());
+      expect(await storage.goals.getDailyMinutes()).toBeNull();
+
+      await storage.goals.setDailyMinutes(30);
+      expect(await storage.goals.getDailyMinutes()).toBe(30);
+
+      await storage.goals.setDailyMinutes(45);
+      expect(await storage.goals.getDailyMinutes()).toBe(45);
+
+      await storage.goals.removeDailyMinutes();
+      expect(await storage.goals.getDailyMinutes()).toBeNull();
+    });
+
+    it('accepts a daily target of 1 to 1440 whole minutes', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      for (const target of [0, -5, 2.5, 1441, Number.NaN]) {
+        await expect(storage.goals.setDailyMinutes(target)).rejects.toBeInstanceOf(InvalidGoalError);
+      }
+      await expect(storage.goals.setDailyMinutes(1440)).resolves.toBeUndefined();
+    });
+
+    it('keeps the yearly and daily goals separate', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.goals.setYearlyBooks(12);
+      await storage.goals.setDailyMinutes(30);
+
+      await storage.goals.removeDailyMinutes();
+
+      expect(await storage.goals.getYearlyBooks()).toBe(12);
+      expect(await storage.goals.getDailyMinutes()).toBeNull();
+    });
+
     it('removing a goal that was never set is fine', async () => {
       const storage = await openStorage(createTestDatabase());
 
