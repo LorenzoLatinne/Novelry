@@ -36,8 +36,15 @@ describe('viewLibrary', () => {
     expect(viewLibrary(all, { shelf: 'read', query: 'tolkien' })).toEqual([hobbit]);
   });
 
-  it('keeps a Library Entry whose Book details are missing out of text searches', () => {
-    expect(viewLibrary(all, { query: 'untitled' })).toEqual([]);
+  it('finds a Library Entry without saved Book details by its ISBN', () => {
+    expect(viewLibrary(all, { query: '4' })).toEqual([unknown]);
     expect(viewLibrary([unknown], {})).toEqual([unknown]);
+  });
+
+  it('ignores accents when searching', () => {
+    const bronte = item('5', 'read', { title: 'Jane Eyre', authors: ['Charlotte Brontë'] });
+
+    expect(viewLibrary([bronte], { query: 'bronte' })).toEqual([bronte]);
+    expect(viewLibrary([item('6', 'read', { title: 'Emma', authors: ['Jane Austen'] })], { query: 'brontë' })).toEqual([]);
   });
 });

@@ -8,9 +8,13 @@ export type LibraryFilter = {
   query?: string;
 };
 
+function plain(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
 /** What the Reader sees in their Library once a Shelf and a search are applied. */
 export function viewLibrary(items: LibraryEntryWithBook[], { shelf, query }: LibraryFilter): LibraryEntryWithBook[] {
-  const needle = query?.trim().toLowerCase();
+  const needle = plain(query?.trim() ?? '');
   return items.filter(({ entry, book }) => {
     if (shelf && entry.shelf !== shelf) {
       return false;
@@ -18,7 +22,7 @@ export function viewLibrary(items: LibraryEntryWithBook[], { shelf, query }: Lib
     if (!needle) {
       return true;
     }
-    const haystack = [book?.title, ...(book?.authors ?? [])].join(' ').toLowerCase();
+    const haystack = plain([entry.isbn, book?.title, ...(book?.authors ?? [])].join(' '));
     return haystack.includes(needle);
   });
 }
