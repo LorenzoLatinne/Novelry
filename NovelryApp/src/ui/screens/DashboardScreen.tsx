@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { readingTime, type ReadingTime } from '../../core/readingTime';
 import { InvalidGoalError } from '../../core/storage/storage';
@@ -17,7 +17,10 @@ export function DashboardScreen() {
   const [goal, setGoal] = useState<YearlyGoalProgress | null>(null);
   const [year, setYear] = useState(() => localParts(Date.now(), deviceTimeZone()).year);
 
+  const latestLoad = useRef(0);
+
   const reload = useCallback(async () => {
+    const load = ++latestLoad.current;
     const now = new Date();
     const timeZone = deviceTimeZone();
     const [sessions, target, finishes] = await Promise.all([
@@ -25,6 +28,9 @@ export function DashboardScreen() {
       storage.goals.getYearlyBooks(),
       storage.library.finishes(),
     ]);
+    if (load !== latestLoad.current) {
+      return; // a newer load has started; its answer wins
+    }
     setTime(readingTime(sessions, now, timeZone));
     setYear(localParts(now.getTime(), timeZone).year);
     setGoal(target === null ? null : yearlyGoalProgress(target, finishes, now, timeZone));
@@ -33,7 +39,11 @@ export function DashboardScreen() {
   useEffect(() => {
     const load = () => reload().catch(() => {});
     load();
-    return navigation.addListener('focus', load);
+    const unsubscribe = navigation.addListener('focus', load);
+    return () => {
+      latestLoad.current++; // ignore anything still on its way once we are gone
+      unsubscribe();
+    };
   }, [reload, navigation]);
 
   return (
@@ -59,8 +69,13 @@ export function DashboardScreen() {
           }
         }}
         onRemove={async () => {
-          await storage.goals.removeYearlyBooks();
-          await reload();
+          try {
+            await storage.goals.removeYearlyBooks();
+            await reload();
+            return null;
+          } catch {
+            return 'Could not remove your goal. Please try again.';
+          }
         }}
       />
     </View>

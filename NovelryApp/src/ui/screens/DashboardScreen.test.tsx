@@ -91,6 +91,19 @@ describe('DashboardScreen', () => {
       expect(await storage.goals.getYearlyBooks()).toBe(10);
     });
 
+    it('lets the Reader back out of changing the goal', async () => {
+      const storage = await openDashboard(undefined, 1, 5);
+      await screen.findByText('1 of 5 books');
+
+      await fireEvent.press(screen.getByText('Change goal'));
+      await fireEvent.changeText(screen.getByLabelText('Books to read this year'), '99');
+      await fireEvent.press(screen.getByText('Cancel'));
+
+      expect(screen.getByText('Change goal')).toBeTruthy();
+      expect(screen.queryByLabelText('Books to read this year')).toBeNull();
+      expect(await storage.goals.getYearlyBooks()).toBe(5);
+    });
+
     it('asks for a sensible target', async () => {
       const storage = await openDashboard();
       await screen.findByText('Set a reading goal for 2026');

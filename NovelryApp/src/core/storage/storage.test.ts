@@ -844,16 +844,16 @@ describe('storage', () => {
       ]);
     });
 
-    it('stops counting a Book as finished when it is moved off Read', async () => {
+    it('undoes the finish when a Book is moved back to Want to read', async () => {
       const storage = await libraryWith(fellowship);
       await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
 
-      await storage.library.moveToShelf(fellowship.isbn, 'reading', T1);
+      await storage.library.moveToShelf(fellowship.isbn, 'want-to-read', T1);
 
       expect(await storage.library.finishes()).toEqual([]);
     });
 
-    it('stops counting a Book as finished when the page is lowered below the end', async () => {
+    it('undoes the finish when the page is lowered below the end', async () => {
       const storage = await libraryWith(fellowship);
       await storage.library.recordPage(fellowship.isbn, 545, T0);
 
@@ -862,16 +862,42 @@ describe('storage', () => {
       expect(await storage.library.finishes()).toEqual([]);
     });
 
-    it('dates a second finish afresh', async () => {
+    it('keeps a finish when the Book is started again, and adds another when it is finished again', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'reading', T0); // reading it again
+      expect(await storage.library.finishes()).toHaveLength(1);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T1);
+      expect(await storage.library.finishes()).toEqual([
+        { isbn: fellowship.isbn, finishedAt: '2026-04-01T10:00:00.000Z' },
+        { isbn: fellowship.isbn, finishedAt: '2026-05-02T18:00:00.000Z' },
+      ]);
+    });
+
+    it('only undoes the latest finish of a Book that was finished twice', async () => {
       const storage = await libraryWith(fellowship);
       await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
       await storage.library.moveToShelf(fellowship.isbn, 'reading', T0);
-
       await storage.library.moveToShelf(fellowship.isbn, 'read', T1);
 
+      await storage.library.moveToShelf(fellowship.isbn, 'want-to-read', T1);
+
       expect(await storage.library.finishes()).toEqual([
-        { isbn: fellowship.isbn, finishedAt: '2026-05-02T18:00:00.000Z' },
+        { isbn: fellowship.isbn, finishedAt: '2026-04-01T10:00:00.000Z' },
       ]);
+    });
+
+    it('still counts a finish when a removed Book is added back, until it is undone (ADR-0004)', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+      await storage.library.remove(fellowship.isbn);
+
+      await storage.library.add(fellowship);
+
+      expect((await storage.library.find(fellowship.isbn))?.shelf).toBe('want-to-read');
+      expect(await storage.library.finishes()).toHaveLength(1);
     });
 
     it('remembers a finish after the Book is removed from the Library (ADR-0004)', async () => {

@@ -65,9 +65,15 @@ export const MIGRATIONS: Migration[] = [
   {
     version: 6,
     sql: `
-      -- When a Book last became Read. Kept when the Book leaves the Library (ADR-0004).
-      CREATE TABLE finish_dates (isbn TEXT PRIMARY KEY NOT NULL, finished_at TEXT NOT NULL);
-      INSERT INTO finish_dates (isbn, finished_at)
+      -- One row each time a Book became Read, kept when the Book leaves the Library (ADR-0004).
+      -- Books already Read before finishes were recorded are dated by when they were added (an approximation).
+      CREATE TABLE finishes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        isbn TEXT NOT NULL,
+        finished_at TEXT NOT NULL
+      );
+      CREATE INDEX finishes_by_book ON finishes (isbn, finished_at);
+      INSERT INTO finishes (isbn, finished_at)
         SELECT isbn, added_at FROM library_entries WHERE shelf = 'read';
       -- Reading Goals, one row per kind of goal.
       CREATE TABLE goals (kind TEXT PRIMARY KEY NOT NULL, target INTEGER NOT NULL CHECK (target >= 1));

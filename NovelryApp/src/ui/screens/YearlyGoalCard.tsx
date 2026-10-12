@@ -16,7 +16,8 @@ export function YearlyGoalCard({
   progress: YearlyGoalProgress | null;
   /** Resolves to an error message for the Reader, or null when the goal was saved. */
   onSet: (target: number) => Promise<string | null>;
-  onRemove: () => Promise<void>;
+  /** Resolves to an error message for the Reader, or null when the goal was removed. */
+  onRemove: () => Promise<string | null>;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
@@ -36,10 +37,16 @@ export function YearlyGoalCard({
     }
   }
 
+  function cancelEditing() {
+    setEditing(false);
+    setText('');
+    setError(null);
+  }
+
   function confirmRemove() {
     Alert.alert('Remove your yearly goal?', 'Your finished books are not affected.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => onRemove() },
+      { text: 'Remove', style: 'destructive', onPress: async () => setError(await onRemove()) },
     ]);
   }
 
@@ -89,6 +96,11 @@ export function YearlyGoalCard({
           <Pressable accessibilityRole="button" onPress={save} style={styles.button}>
             <Text style={styles.buttonText}>{progress ? 'Save' : 'Set goal'}</Text>
           </Pressable>
+          {progress ? (
+            <Pressable accessibilityRole="button" onPress={cancelEditing} style={styles.linkButton}>
+              <Text style={styles.linkText}>Cancel</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : (
         <View style={styles.row}>
@@ -145,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
-  linkButton: { minHeight: 44, justifyContent: 'center', paddingRight: 24 },
+  linkButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   linkText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
   removeText: { color: colors.error, fontSize: 16, fontWeight: '600' },
   error: { marginTop: 8, color: colors.error, fontSize: 14 },

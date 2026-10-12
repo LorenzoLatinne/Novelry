@@ -96,6 +96,7 @@ export interface ReadingSessions {
 }
 
 export const MAX_YEARLY_BOOKS_GOAL = 1000;
+const YEARLY_BOOKS = 'yearly-books';
 
 /** The goal target given cannot be saved. */
 export class InvalidGoalError extends Error {
@@ -125,7 +126,10 @@ export interface Library {
   moveToShelf(isbn: string, shelf: Shelf, at?: Date): Promise<void>;
   /** Marks or unmarks a Book already in the Library as a Favorite. */
   setFavorite(isbn: string, favorite: boolean): Promise<void>;
-  /** When each Book last became Read. A finish is forgotten if the Book is moved off Read. */
+  /**
+   * Every time a Book became Read, oldest first. Starting a Book again keeps its finish; moving a Book off
+   * Read as a correction (back to Want to read, or a lower page) undoes the latest one.
+   */
   finishes(): Promise<{ isbn: string; finishedAt: string }[]>;
   /** Every Book ever marked as a Favorite, including ones no longer in the Library. */
   favoriteIsbns(): Promise<string[]>;
@@ -268,20 +272,40 @@ export async function openStorage(
     return entry;
   }
 
-  /** Saves the Shelf and page, keeping the Book's finish date in step with it. */
-  async function writeProgress(entry: LibraryEntry, shelf: Shelf, page: number, at: Date): Promise<void> {
-    await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
-      shelf,
-      page,
-      entry.isbn,
-    ]);
-    if (shelf === 'read' && entry.shelf !== 'read') {
-      await database.run('INSERT OR REPLACE INTO finish_dates (isbn, finished_at) VALUES (?, ?)', [
+  /**
+   * Saves the Shelf and page, keeping the finishes in step: becoming Read records one, and leaving Read
+   * undoes the latest, unless the Reader is starting the Book again.
+   */
+  async function writeProgress(
+    entry: LibraryEntry,
+    shelf: Shelf,
+    page: number,
+    at: Date,
+    { startingAgain = false }: { startingAgain?: boolean } = {},
+  ): Promise<void> {
+    await database.exec('BEGIN');
+    try {
+      await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
+        shelf,
+        page,
         entry.isbn,
-        at.toISOString(),
       ]);
-    } else if (shelf !== 'read' && entry.shelf === 'read') {
-      await database.run('DELETE FROM finish_dates WHERE isbn = ?', [entry.isbn]);
+      if (shelf === 'read' && entry.shelf !== 'read') {
+        await database.run('INSERT INTO finishes (isbn, finished_at) VALUES (?, ?)', [
+          entry.isbn,
+          at.toISOString(),
+        ]);
+      } else if (shelf !== 'read' && entry.shelf === 'read' && !startingAgain) {
+        await database.run(
+          `DELETE FROM finishes WHERE id = (
+             SELECT id FROM finishes WHERE isbn = ? ORDER BY finished_at DESC, id DESC LIMIT 1)`,
+          [entry.isbn],
+        );
+      }
+      await database.exec('COMMIT');
+    } catch (error) {
+      await database.exec('ROLLBACK');
+      throw error;
     }
   }
 
@@ -349,7 +373,9 @@ export async function openStorage(
         } else if (shelf === 'reading' && entry.shelf === 'read') {
           page = 0; // reading it again
         }
-        await writeProgress(entry, shelf, page, at);
+        await writeProgress(entry, shelf, page, at, {
+          startingAgain: shelf === 'reading' && entry.shelf === 'read',
+        });
       },
       async setFavorite(isbn, favorite) {
         await requireEntry(isbn);
@@ -360,7 +386,7 @@ export async function openStorage(
       },
       async finishes() {
         const rows = await database.getAll<{ isbn: string; finished_at: string }>(
-          'SELECT isbn, finished_at FROM finish_dates ORDER BY finished_at, isbn',
+          'SELECT isbn, finished_at FROM finishes ORDER BY finished_at, id',
         );
         return rows.map((row) => ({ isbn: row.isbn, finishedAt: row.finished_at }));
       },
@@ -513,7 +539,8 @@ export async function openStorage(
     goals: {
       async getYearlyBooks() {
         const [row] = await database.getAll<{ target: number }>(
-          "SELECT target FROM goals WHERE kind = 'yearly-books'",
+          'SELECT target FROM goals WHERE kind = ?',
+          [YEARLY_BOOKS],
         );
         return row?.target ?? null;
       },
@@ -522,12 +549,12 @@ export async function openStorage(
           throw new InvalidGoalError(`The goal must be a whole number of books from 1 to ${MAX_YEARLY_BOOKS_GOAL}.`);
         }
         await database.run(
-          "INSERT INTO goals (kind, target) VALUES ('yearly-books', ?) ON CONFLICT(kind) DO UPDATE SET target = excluded.target",
-          [target],
+          'INSERT INTO goals (kind, target) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET target = excluded.target',
+          [YEARLY_BOOKS, target],
         );
       },
       async removeYearlyBooks() {
-        await database.run("DELETE FROM goals WHERE kind = 'yearly-books'");
+        await database.run('DELETE FROM goals WHERE kind = ?', [YEARLY_BOOKS]);
       },
     },
     reviews: {
