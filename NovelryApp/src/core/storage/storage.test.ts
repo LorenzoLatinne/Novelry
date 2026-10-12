@@ -175,6 +175,15 @@ describe('storage', () => {
       expect(await storage.library.find(fellowship.isbn)).toMatchObject({ shelf: 'read' });
     });
 
+    it('lists every Book the device knows, in a steady order', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      await storage.library.add({ isbn: '9780000000002', title: 'Other', authors: [], genres: [] });
+      await storage.library.remove(fellowship.isbn);
+
+      expect((await storage.books.all()).map((b) => b.isbn)).toEqual(['9780000000002', fellowship.isbn]);
+    });
+
     it('remembers the Book on the device so it can be shown without internet', async () => {
       const storage = await openStorage(createTestDatabase());
 

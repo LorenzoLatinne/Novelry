@@ -53,7 +53,7 @@ A Book the Reader has marked as a favorite. The mark stays when the Book leaves 
 _Avoid_: Liked book
 
 **Export**:
-A file containing a Reader's whole Library, Reviews, Sessions and Goals, used to move to another phone or back up.
+A file holding everything a Reader has in Novelry (Library, Reviews, Sessions, Goals, Favorites, earned Achievements, dismissed Recommendations), used to back up or move to another phone.
 _Avoid_: Backup file, dump
 
 **Scan**:

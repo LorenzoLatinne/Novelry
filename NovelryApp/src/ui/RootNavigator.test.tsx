@@ -14,7 +14,7 @@ describe('RootNavigator', () => {
     for (const [tab, message] of [
       ['Explore', 'Search for a book by title or author.'],
       ['Dashboard', 'Reading time'],
-      ['Settings', 'Privacy, support and your data.'],
+      ['Settings', 'Your data'],
     ]) {
       await fireEvent.press(screen.getAllByText(tab)[0]);
       expect(screen.getByText(message)).toBeTruthy();

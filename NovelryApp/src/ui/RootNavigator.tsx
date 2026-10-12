@@ -7,8 +7,8 @@ import { BookDetailScreen } from './screens/BookDetailScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
-import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { ScanScreen } from './screens/ScanScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { colors } from './theme';
 
 export type RootStackParamList = {
@@ -32,10 +32,6 @@ const theme = {
     border: colors.border,
   },
 };
-
-const SettingsScreen = () => (
-  <PlaceholderScreen title="Settings" message="Privacy, support and your data." />
-);
 
 function Tabs() {
   return (
