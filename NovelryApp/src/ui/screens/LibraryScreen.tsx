@@ -1,18 +1,35 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import type { LibraryEntry, Storage } from '../../core/storage/storage';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Book } from '../../core/catalog/book';
+import { SHELF_LABELS } from '../../core/shelf';
+import type { LibraryEntry } from '../../core/storage/storage';
+import { useAppServices } from '../AppServices';
+import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 
-export function LibraryScreen({ storage }: { storage: Storage }) {
-  const [entries, setEntries] = useState<LibraryEntry[] | null>(null);
+type Row = { entry: LibraryEntry; book: Book | null };
+
+export function LibraryScreen() {
+  const { storage } = useAppServices();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [rows, setRows] = useState<Row[] | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    storage.library
-      .list()
-      .then(setEntries)
-      .catch(() => setFailed(true));
-  }, [storage]);
+    // Reload whenever the Library tab regains focus, e.g. after adding a Book.
+    const load = () =>
+      storage.library
+        .list()
+        .then((entries) =>
+          Promise.all(entries.map(async (entry) => ({ entry, book: await storage.books.get(entry.isbn) }))),
+        )
+        .then(setRows)
+        .catch(() => setFailed(true));
+    load();
+    return navigation.addListener('focus', load);
+  }, [storage, navigation]);
 
   if (failed) {
     return (
@@ -22,11 +39,11 @@ export function LibraryScreen({ storage }: { storage: Storage }) {
     );
   }
 
-  if (entries === null) {
+  if (rows === null) {
     return <View style={styles.container} />;
   }
 
-  if (entries.length === 0) {
+  if (rows.length === 0) {
     return (
       <View style={styles.container}>
         <Text accessibilityRole="header" style={styles.title}>
@@ -39,9 +56,20 @@ export function LibraryScreen({ storage }: { storage: Storage }) {
 
   return (
     <FlatList
-      data={entries}
-      keyExtractor={(entry) => entry.isbn}
-      renderItem={({ item }) => <Text style={styles.row}>{item.isbn}</Text>}
+      data={rows}
+      keyExtractor={({ entry }) => entry.isbn}
+      renderItem={({ item: { entry, book } }) => (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('BookDetail', { isbn: entry.isbn })}
+          style={styles.row}
+        >
+          <Text style={styles.rowTitle}>{book?.title ?? entry.isbn}</Text>
+          <Text style={styles.rowMeta}>
+            {[book?.authors.join(', '), SHELF_LABELS[entry.shelf]].filter(Boolean).join(' · ')}
+          </Text>
+        </Pressable>
+      )}
     />
   );
 }
@@ -56,5 +84,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 8 },
   message: { fontSize: 16, color: colors.textMuted, textAlign: 'center' },
-  row: { padding: 16, color: colors.text },
+  row: { padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  rowTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+  rowMeta: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
 });
