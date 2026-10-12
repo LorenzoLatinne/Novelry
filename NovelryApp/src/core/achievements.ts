@@ -29,7 +29,10 @@ export type Achievement = {
   /** Progress toward the target, never more than the target. */
   current: number;
   target: number;
+  /** Earned once, earned for good: still true if the history is corrected afterwards. */
   earned: boolean;
+  /** When it was first noticed to be earned, or null. */
+  earnedAt: string | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -47,7 +50,11 @@ function daysRead(sessions: ReadingSession[], now: Date, timeZone: string): Set<
   const days = new Set<number>();
   for (const session of sessions) {
     const start = Date.parse(session.startedAt);
-    const end = session.endedAt ? Date.parse(session.endedAt) : now.getTime();
+    // A session cannot run into the future, so an end time past now (or a running session) stops at now.
+    const end = Math.min(session.endedAt ? Date.parse(session.endedAt) : now.getTime(), now.getTime());
+    if (!Number.isFinite(start) || !Number.isFinite(end) || !(end > start)) {
+      continue; // unreadable, empty or backwards: nothing was read, as in the minutes count
+    }
     const first = localParts(start, timeZone);
     let day = Math.floor(Date.UTC(first.year, first.month - 1, first.day) / DAY_MS);
     for (;;) {
@@ -127,7 +134,10 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
   },
 ];
 
-/** Where the Reader stands on every Achievement. Pure: ask again at any time and the answer follows the history. */
+/**
+ * Where the Reader stands on every Achievement right now, from their history alone. Pure: it follows the
+ * history, so it can go down if the history is corrected. See `loadAchievements` for what the Reader keeps.
+ */
 export function evaluateAchievements(
   history: AchievementHistory,
   now: Date,
@@ -143,11 +153,27 @@ export function evaluateAchievements(
       current: Math.min(measured, rule.target),
       target: rule.target,
       earned: measured >= rule.target,
+      earnedAt: null,
     };
   });
 }
 
+/**
+ * The Reader's Achievements. Anything the rules say is earned is recorded the first time it is seen, and
+ * stays earned afterwards even if the history behind it is later corrected. Safe to call as often as needed.
+ */
 export async function loadAchievements(storage: Storage, now: Date, timeZone: string): Promise<Achievement[]> {
   const [finishes, sessions] = await Promise.all([storage.library.finishes(), storage.sessions.all()]);
-  return evaluateAchievements({ finishes, sessions }, now, timeZone);
+  const evaluated = evaluateAchievements({ finishes, sessions }, now, timeZone);
+
+  await storage.achievements.recordEarned(
+    evaluated.filter((achievement) => achievement.earned).map((achievement) => achievement.id),
+    now,
+  );
+  const recorded = new Map((await storage.achievements.all()).map((earned) => [earned.id, earned.earnedAt]));
+
+  return evaluated.map((achievement) => {
+    const earnedAt = recorded.get(achievement.id) ?? null;
+    return { ...achievement, earned: earnedAt !== null, earnedAt };
+  });
 }
