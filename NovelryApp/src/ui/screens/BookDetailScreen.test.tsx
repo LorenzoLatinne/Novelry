@@ -19,6 +19,8 @@ async function renderDetail(fetch: jest.Mock) {
 }
 
 describe('BookDetailScreen', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it('shows the Book and lets the Reader add it to their Library', async () => {
     const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
     const storage = await renderDetail(fetch);
@@ -71,7 +73,6 @@ describe('BookDetailScreen', () => {
 
     expect(await screen.findByText('Add to Library')).toBeTruthy();
     expect(await storage.library.find('9780261102354')).toBeNull();
-    alert.mockRestore();
   });
 
   it('keeps the Book when the Reader cancels the removal', async () => {
@@ -85,6 +86,19 @@ describe('BookDetailScreen', () => {
     await act(async () => cancel.onPress?.());
 
     expect(await storage.library.find('9780261102354')).not.toBeNull();
-    alert.mockRestore();
+    expect(screen.getByText('Remove from Library')).toBeTruthy();
+  });
+
+  it('tells the Reader when a Shelf change fails, and keeps the old Shelf', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('In your Library · Want to read');
+    jest.spyOn(storage.library, 'moveToShelf').mockRejectedValue(new Error('disk full'));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Read' }));
+
+    expect(await screen.findByText(/Could not move this book/)).toBeTruthy();
+    expect(screen.getByText('In your Library · Want to read')).toBeTruthy();
   });
 });

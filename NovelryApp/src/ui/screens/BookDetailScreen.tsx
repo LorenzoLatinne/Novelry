@@ -103,8 +103,10 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   const addToLibrary = () =>
     change(() => storage.library.add(book), 'Could not add this book. Please try again.');
 
-  const moveToShelf = (shelf: Shelf) =>
-    change(() => storage.library.moveToShelf(book.isbn, shelf), 'Could not move this book. Please try again.');
+  const chooseShelf = (shelf: Shelf) =>
+    shelf === entry?.shelf
+      ? Promise.resolve()
+      : change(() => storage.library.moveToShelf(book.isbn, shelf), 'Could not move this book. Please try again.');
 
   function confirmRemove() {
     Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
@@ -147,7 +149,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
                   key={shelf}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: selected }}
-                  onPress={() => moveToShelf(shelf)}
+                  onPress={() => chooseShelf(shelf)}
                   style={[styles.chip, selected && styles.chipSelected]}
                 >
                   <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
@@ -157,7 +159,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
               );
             })}
           </View>
-          <Pressable accessibilityRole="button" onPress={confirmRemove} style={styles.removeButton}>
+          <Pressable
+            accessibilityHint="Asks you to confirm"
+            accessibilityRole="button"
+            onPress={confirmRemove}
+            style={styles.removeButton}
+          >
             <Text style={styles.removeText}>Remove from Library</Text>
           </Pressable>
         </>

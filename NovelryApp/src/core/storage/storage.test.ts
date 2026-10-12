@@ -157,6 +157,16 @@ describe('storage', () => {
       expect(entries[0]).toMatchObject({ shelf: 'reading' });
     });
 
+    it('still works when moveToShelf is passed around on its own', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      const { moveToShelf } = storage.library;
+
+      await moveToShelf(fellowship.isbn, 'read');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ shelf: 'read' });
+    });
+
     it('remembers the Book on the device so it can be shown without internet', async () => {
       const storage = await openStorage(createTestDatabase());
 
