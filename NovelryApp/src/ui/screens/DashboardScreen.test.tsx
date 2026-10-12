@@ -132,7 +132,7 @@ describe('DashboardScreen', () => {
       await fireEvent.press(screen.getByText('Remove goal'));
       expect(await storage.goals.getYearlyBooks()).toBe(5);
 
-      const confirm = alert.mock.calls[0][2]!.find((b) => b.text === 'Remove')!;
+      const confirm = alert.mock.calls.find(([title]) => /^Remove your/.test(title))![2]!.find((b) => b.text === 'Remove')!;
       await act(async () => confirm.onPress!());
 
       expect(await screen.findByText('Set a reading goal for 2026')).toBeTruthy();
@@ -174,7 +174,7 @@ describe('DashboardScreen', () => {
       expect(await screen.findByText('0 of 45 minutes today')).toBeTruthy();
 
       await fireEvent.press(screen.getByText('Remove daily goal'));
-      const confirm = alert.mock.calls[0][2]!.find((b) => b.text === 'Remove')!;
+      const confirm = alert.mock.calls.find(([title]) => /^Remove your/.test(title))![2]!.find((b) => b.text === 'Remove')!;
       await act(async () => confirm.onPress!());
 
       expect(await screen.findByText('Set a daily reading goal')).toBeTruthy();

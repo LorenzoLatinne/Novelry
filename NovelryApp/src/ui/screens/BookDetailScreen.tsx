@@ -22,6 +22,7 @@ import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
+import { useAnnounceAchievements } from '../useAnnounceAchievements';
 import { ReviewSection } from './ReviewSection';
 import { colors } from '../theme';
 
@@ -47,6 +48,7 @@ function toErrorState(error: unknown): State {
 
 export function BookDetailScreen({ isbn }: { isbn: string }) {
   const { storage, catalog } = useAppServices();
+  const announceAchievements = useAnnounceAchievements();
   const [state, setState] = useState<State>({ kind: 'loading' });
 
   const [actionError, setActionError] = useState<string | null>(null);
@@ -129,6 +131,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     try {
       await action();
       await load({ quiet: true });
+      await announceAchievements();
     } catch (error) {
       // Entering a bad page is the Reader's to fix; anything else is a failure to apologise for.
       setActionError(

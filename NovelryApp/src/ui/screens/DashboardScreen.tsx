@@ -7,6 +7,7 @@ import { formatDuration } from '../../core/duration';
 import { localParts, msUntilNextLocalDay } from '../../core/localTime';
 import { InvalidGoalError, MAX_DAILY_MINUTES_GOAL, MAX_YEARLY_BOOKS_GOAL } from '../../core/storage/storage';
 import { useAppServices } from '../AppServices';
+import { useAnnounceAchievements } from '../useAnnounceAchievements';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 import { deviceTimeZone } from '../timeZone';
@@ -17,6 +18,8 @@ export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [data, setData] = useState<DashboardData | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [achievementCount, setAchievementCount] = useState<{ earned: number; total: number } | null>(null);
+  const announceAchievements = useAnnounceAchievements();
   const timeZone = deviceTimeZone();
   const focused = useIsFocused();
 
@@ -30,7 +33,11 @@ export function DashboardScreen() {
     }
     setData(loaded);
     setNow(new Date());
-  }, [storage]);
+    const achievements = await announceAchievements();
+    if (achievements && load === latestLoad.current) {
+      setAchievementCount({ earned: achievements.filter((a) => a.earned).length, total: achievements.length });
+    }
+  }, [storage, announceAchievements]);
 
   useEffect(() => {
     const load = () => reload().catch(() => {});
@@ -134,6 +141,18 @@ export function DashboardScreen() {
         <Stat label={`Read in ${view?.year ?? ''}`.trim()} value={view && String(view.booksThisYear)} />
       </View>
 
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => navigation.navigate('Achievements')}
+        style={styles.achievementsCard}
+      >
+        <Text style={styles.achievementsTitle}>Achievements</Text>
+        <Text style={styles.achievementsText}>
+          {achievementCount ? `${achievementCount.earned} of ${achievementCount.total} earned` : '–'}
+        </Text>
+        <Text style={styles.achievementsLink}>See all</Text>
+      </Pressable>
+
       <GoalCard
         copy={yearlyCopy(view?.year ?? localParts(now.getTime(), timeZone).year)}
         currentTarget={yearlyGoal?.target ?? null}
@@ -218,6 +237,10 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.background },
   container: { padding: 24 },
   title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 16, marginTop: 8 },
+  achievementsCard: { marginTop: 16, padding: 16, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, minHeight: 44 },
+  achievementsTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  achievementsText: { fontSize: 16, color: colors.primary, marginTop: 4 },
+  achievementsLink: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
   nowCard: { padding: 16, borderRadius: 12, backgroundColor: colors.primary, marginBottom: 16, alignItems: 'center' },
   nowLabel: { fontSize: 14, color: colors.onPrimary },
   nowTitle: { fontSize: 18, fontWeight: '700', color: colors.onPrimary, marginTop: 4, textAlign: 'center' },

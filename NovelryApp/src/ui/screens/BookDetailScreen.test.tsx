@@ -68,7 +68,7 @@ describe('BookDetailScreen', () => {
     await fireEvent.press(await screen.findByText('Remove from Library'));
     expect(await storage.library.find('9780261102354')).not.toBeNull();
 
-    const buttons = alert.mock.calls[0][2]!;
+    const buttons = alert.mock.calls.find(([title]) => title === 'Remove from Library?')![2]!;
     await act(async () => buttons.find((b) => b.text === 'Remove')!.onPress!());
 
     expect(await screen.findByText('Add to Library')).toBeTruthy();
@@ -82,7 +82,7 @@ describe('BookDetailScreen', () => {
     await fireEvent.press(await screen.findByText('Add to Library'));
     await fireEvent.press(await screen.findByText('Remove from Library'));
 
-    const cancel = alert.mock.calls[0][2]!.find((b) => b.text === 'Cancel')!;
+    const cancel = alert.mock.calls.find(([title]) => title === 'Remove from Library?')![2]!.find((b) => b.text === 'Cancel')!;
     await act(async () => cancel.onPress?.());
 
     expect(await storage.library.find('9780261102354')).not.toBeNull();
@@ -245,7 +245,7 @@ describe('BookDetailScreen', () => {
       await fireEvent.press(screen.getByText('Delete'));
       expect(await storage.sessions.list('9780261102354')).toHaveLength(1);
 
-      const confirm = alert.mock.calls[0][2]!.find((b) => b.text === 'Delete')!;
+      const confirm = alert.mock.calls.find(([title]) => title === 'Delete this session?')![2]!.find((b) => b.text === 'Delete')!;
       await act(async () => confirm.onPress!());
 
       expect(await storage.sessions.list('9780261102354')).toEqual([]);

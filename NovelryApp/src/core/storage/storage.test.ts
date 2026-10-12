@@ -998,10 +998,42 @@ describe('storage', () => {
       await storage.achievements.recordEarned(['first-book', 'five-books'], T1);
 
       expect(await storage.achievements.all()).toEqual([
-        { id: 'first-book', earnedAt: '2026-03-02T11:00:00.000Z' },
-        { id: 'first-hour', earnedAt: '2026-03-02T11:00:00.000Z' },
-        { id: 'five-books', earnedAt: '2026-03-09T11:00:00.000Z' },
+        { id: 'first-book', earnedAt: '2026-03-02T11:00:00.000Z', seen: false },
+        { id: 'first-hour', earnedAt: '2026-03-02T11:00:00.000Z', seen: false },
+        { id: 'five-books', earnedAt: '2026-03-09T11:00:00.000Z', seen: false },
       ]);
+    });
+
+    it('remembers which Achievements the Reader has been told about', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.achievements.recordEarned(['first-book', 'first-hour'], T0);
+
+      await storage.achievements.markSeen(['first-book']);
+
+      expect(await storage.achievements.all()).toEqual([
+        { id: 'first-book', earnedAt: '2026-03-02T11:00:00.000Z', seen: true },
+        { id: 'first-hour', earnedAt: '2026-03-02T11:00:00.000Z', seen: false },
+      ]);
+    });
+
+    it('stays seen when it is recorded as earned again', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.achievements.recordEarned(['first-book'], T0);
+      await storage.achievements.markSeen(['first-book']);
+
+      await storage.achievements.recordEarned(['first-book'], T1);
+
+      expect(await storage.achievements.all()).toEqual([
+        { id: 'first-book', earnedAt: '2026-03-02T11:00:00.000Z', seen: true },
+      ]);
+    });
+
+    it('marking nothing, or something never earned, as seen is fine', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.achievements.markSeen([])).resolves.toBeUndefined();
+      await expect(storage.achievements.markSeen(['nope'])).resolves.toBeUndefined();
+      expect(await storage.achievements.all()).toEqual([]);
     });
 
     it('does nothing for an empty list', async () => {

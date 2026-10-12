@@ -84,4 +84,13 @@ export const MIGRATIONS: Migration[] = [
     // Achievements stay earned once earned, even if the history behind them is corrected later (ADR-0004).
     sql: `CREATE TABLE earned_achievements (id TEXT PRIMARY KEY NOT NULL, earned_at TEXT NOT NULL);`,
   },
+  {
+    version: 8,
+    // Whether the Reader has been told about an earned Achievement (so the notice appears once).
+    sql: `
+      ALTER TABLE earned_achievements ADD COLUMN seen INTEGER NOT NULL DEFAULT 0;
+      -- Anything recorded before this existed was never meant to be announced: count it as seen.
+      UPDATE earned_achievements SET seen = 1;
+    `,
+  },
 ];
