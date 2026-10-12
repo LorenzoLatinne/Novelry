@@ -2,6 +2,7 @@ import type { Book } from '../catalog/book';
 import { MIGRATIONS } from './migrations';
 import {
   InvalidPageError,
+  InvalidGoalError,
   InvalidReviewError,
   InvalidSessionError,
   SessionAlreadyRunningError,
@@ -801,6 +802,122 @@ describe('storage', () => {
       const [item] = await storage.library.listWithBooks();
 
       expect(item.entry.favorite).toBe(true);
+    });
+  });
+
+  describe('finishing Books', () => {
+    const T0 = new Date('2026-04-01T10:00:00.000Z');
+    const T1 = new Date('2026-05-02T18:00:00.000Z');
+
+    async function libraryWith(book: Book) {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(book);
+      return storage;
+    }
+
+    it('records when a Book becomes Read by reaching its last page', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.library.recordPage(fellowship.isbn, 545, T0);
+
+      expect(await storage.library.finishes()).toEqual([
+        { isbn: fellowship.isbn, finishedAt: '2026-04-01T10:00:00.000Z' },
+      ]);
+    });
+
+    it('records when a Book is moved to Read', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+
+      expect(await storage.library.finishes()).toHaveLength(1);
+    });
+
+    it('keeps the first finish date while the Book stays Read', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+
+      await storage.library.recordPage(fellowship.isbn, 545, T1);
+
+      expect(await storage.library.finishes()).toEqual([
+        { isbn: fellowship.isbn, finishedAt: '2026-04-01T10:00:00.000Z' },
+      ]);
+    });
+
+    it('stops counting a Book as finished when it is moved off Read', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'reading', T1);
+
+      expect(await storage.library.finishes()).toEqual([]);
+    });
+
+    it('stops counting a Book as finished when the page is lowered below the end', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 545, T0);
+
+      await storage.library.recordPage(fellowship.isbn, 300, T1);
+
+      expect(await storage.library.finishes()).toEqual([]);
+    });
+
+    it('dates a second finish afresh', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+      await storage.library.moveToShelf(fellowship.isbn, 'reading', T0);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T1);
+
+      expect(await storage.library.finishes()).toEqual([
+        { isbn: fellowship.isbn, finishedAt: '2026-05-02T18:00:00.000Z' },
+      ]);
+    });
+
+    it('remembers a finish after the Book is removed from the Library (ADR-0004)', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read', T0);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.library.finishes()).toHaveLength(1);
+    });
+  });
+
+  describe('Reading Goals', () => {
+    it('has no yearly goal until one is set', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      expect(await storage.goals.getYearlyBooks()).toBeNull();
+    });
+
+    it('sets, changes and removes the yearly goal', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await storage.goals.setYearlyBooks(12);
+      expect(await storage.goals.getYearlyBooks()).toBe(12);
+
+      await storage.goals.setYearlyBooks(20);
+      expect(await storage.goals.getYearlyBooks()).toBe(20);
+
+      await storage.goals.removeYearlyBooks();
+      expect(await storage.goals.getYearlyBooks()).toBeNull();
+    });
+
+    it('accepts only whole targets from 1 to 1000', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      for (const target of [0, -3, 1.5, 1001, Number.NaN]) {
+        await expect(storage.goals.setYearlyBooks(target)).rejects.toBeInstanceOf(InvalidGoalError);
+      }
+      await expect(storage.goals.setYearlyBooks(1000)).resolves.toBeUndefined();
+      await expect(storage.goals.setYearlyBooks(1)).resolves.toBeUndefined();
+    });
+
+    it('removing a goal that was never set is fine', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.goals.removeYearlyBooks()).resolves.toBeUndefined();
     });
   });
 });

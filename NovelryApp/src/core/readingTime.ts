@@ -1,3 +1,4 @@
+import { localParts, startOfLocalDay } from './localTime';
 import type { ReadingSession } from './storage/storage';
 
 export type ReadingTime = {
@@ -8,52 +9,6 @@ export type ReadingTime = {
   /** Seconds read this year. */
   thisYear: number;
 };
-
-const formatters = new Map<string, Intl.DateTimeFormat>();
-
-function formatterFor(timeZone: string): Intl.DateTimeFormat {
-  let formatter = formatters.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hourCycle: 'h23',
-    });
-    formatters.set(timeZone, formatter);
-  }
-  return formatter;
-}
-
-function localParts(instant: number, timeZone: string) {
-  const parts = formatterFor(timeZone).formatToParts(new Date(instant));
-  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
-  return {
-    year: get('year'),
-    month: get('month'),
-    day: get('day'),
-    hour: get('hour') % 24, // some engines report midnight as 24
-    minute: get('minute'),
-    second: get('second'),
-  };
-}
-
-/** How far the time zone is ahead of UTC at an instant, in milliseconds. */
-function offsetAt(instant: number, timeZone: string): number {
-  const p = localParts(instant - (instant % 1000), timeZone);
-  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - (instant - (instant % 1000));
-}
-
-/** The instant at which a calendar day begins in a time zone. Months are 1-12; days may overflow. */
-function startOfLocalDay(year: number, month: number, day: number, timeZone: string): number {
-  const asIfUtc = Date.UTC(year, month - 1, day);
-  const first = asIfUtc - offsetAt(asIfUtc, timeZone);
-  return asIfUtc - offsetAt(first, timeZone);
-}
 
 /** Seconds of the period [from, to) during which at least one session was running. Overlaps count once. */
 function secondsRead(sessions: ReadingSession[], from: number, to: number, now: number): number {

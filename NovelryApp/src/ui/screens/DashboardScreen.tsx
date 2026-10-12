@@ -1,30 +1,40 @@
 import { useNavigation } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { readingTime, type ReadingTime } from '../../core/readingTime';
+import { InvalidGoalError } from '../../core/storage/storage';
+import { localParts } from '../../core/localTime';
+import { yearlyGoalProgress, type YearlyGoalProgress } from '../../core/yearlyGoal';
 import { useAppServices } from '../AppServices';
 import { colors } from '../theme';
 import { deviceTimeZone } from '../timeZone';
+import { YearlyGoalCard } from './YearlyGoalCard';
 
 export function DashboardScreen() {
   const { storage } = useAppServices();
   const navigation = useNavigation();
   const [time, setTime] = useState<ReadingTime | null>(null);
+  const [goal, setGoal] = useState<YearlyGoalProgress | null>(null);
+  const [year, setYear] = useState(() => localParts(Date.now(), deviceTimeZone()).year);
+
+  const reload = useCallback(async () => {
+    const now = new Date();
+    const timeZone = deviceTimeZone();
+    const [sessions, target, finishes] = await Promise.all([
+      storage.sessions.all(),
+      storage.goals.getYearlyBooks(),
+      storage.library.finishes(),
+    ]);
+    setTime(readingTime(sessions, now, timeZone));
+    setYear(localParts(now.getTime(), timeZone).year);
+    setGoal(target === null ? null : yearlyGoalProgress(target, finishes, now, timeZone));
+  }, [storage]);
 
   useEffect(() => {
-    let active = true;
-    const load = () =>
-      storage.sessions
-        .all()
-        .then((sessions) => active && setTime(readingTime(sessions, new Date(), deviceTimeZone())))
-        .catch(() => {});
+    const load = () => reload().catch(() => {});
     load();
-    const unsubscribe = navigation.addListener('focus', load);
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [storage, navigation]);
+    return navigation.addListener('focus', load);
+  }, [reload, navigation]);
 
   return (
     <View style={styles.container}>
@@ -36,6 +46,23 @@ export function DashboardScreen() {
         <Stat label="This week" seconds={time?.thisWeek} />
         <Stat label="This year" seconds={time?.thisYear} />
       </View>
+      <YearlyGoalCard
+        year={year}
+        progress={goal}
+        onSet={async (target) => {
+          try {
+            await storage.goals.setYearlyBooks(target);
+            await reload();
+            return null;
+          } catch (error) {
+            return error instanceof InvalidGoalError ? error.message : 'Could not save your goal. Please try again.';
+          }
+        }}
+        onRemove={async () => {
+          await storage.goals.removeYearlyBooks();
+          await reload();
+        }}
+      />
     </View>
   );
 }

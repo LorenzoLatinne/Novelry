@@ -62,4 +62,15 @@ export const MIGRATIONS: Migration[] = [
     // Kept apart from library_entries so a Favorite survives the Book leaving the Library (ADR-0004).
     sql: `CREATE TABLE favorites (isbn TEXT PRIMARY KEY NOT NULL);`,
   },
+  {
+    version: 6,
+    sql: `
+      -- When a Book last became Read. Kept when the Book leaves the Library (ADR-0004).
+      CREATE TABLE finish_dates (isbn TEXT PRIMARY KEY NOT NULL, finished_at TEXT NOT NULL);
+      INSERT INTO finish_dates (isbn, finished_at)
+        SELECT isbn, added_at FROM library_entries WHERE shelf = 'read';
+      -- Reading Goals, one row per kind of goal.
+      CREATE TABLE goals (kind TEXT PRIMARY KEY NOT NULL, target INTEGER NOT NULL CHECK (target >= 1));
+    `,
+  },
 ];

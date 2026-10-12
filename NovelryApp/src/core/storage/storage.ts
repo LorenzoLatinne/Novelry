@@ -95,6 +95,23 @@ export interface ReadingSessions {
   list(isbn: string): Promise<ReadingSession[]>;
 }
 
+export const MAX_YEARLY_BOOKS_GOAL = 1000;
+
+/** The goal target given cannot be saved. */
+export class InvalidGoalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidGoalError';
+  }
+}
+
+export interface Goals {
+  /** The number of Books the Reader wants to finish each year, or null if they have not set one. */
+  getYearlyBooks(): Promise<number | null>;
+  setYearlyBooks(target: number): Promise<void>;
+  removeYearlyBooks(): Promise<void>;
+}
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
@@ -105,16 +122,18 @@ export interface Library {
    * The page follows: Read puts it at the last page (when the length is known), Want to read
    * resets it to 0, and Reading keeps it, except that a finished Book starts again from 0.
    */
-  moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
+  moveToShelf(isbn: string, shelf: Shelf, at?: Date): Promise<void>;
   /** Marks or unmarks a Book already in the Library as a Favorite. */
   setFavorite(isbn: string, favorite: boolean): Promise<void>;
+  /** When each Book last became Read. A finish is forgotten if the Book is moved off Read. */
+  finishes(): Promise<{ isbn: string; finishedAt: string }[]>;
   /** Every Book ever marked as a Favorite, including ones no longer in the Library. */
   favoriteIsbns(): Promise<string[]>;
   /**
    * Records how far the Reader has got. The Shelf follows: the first page moves Want to read to
    * Reading, the last page moves the Book to Read, and going back from the last page returns it to Reading.
    */
-  recordPage(isbn: string, page: number): Promise<void>;
+  recordPage(isbn: string, page: number, at?: Date): Promise<void>;
   /**
    * Takes a Book out of the Library. Its saved details, Reviews and Reading Sessions stay (ADR-0004),
    * but a session still running on it is ended now. Removing an absent Book is a no-op.
@@ -135,6 +154,7 @@ export interface Storage {
   books: BookCache;
   sessions: ReadingSessions;
   reviews: Reviews;
+  goals: Goals;
 }
 
 type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string; favorite: number };
@@ -248,12 +268,21 @@ export async function openStorage(
     return entry;
   }
 
-  async function writeProgress(isbn: string, shelf: Shelf, page: number): Promise<void> {
+  /** Saves the Shelf and page, keeping the Book's finish date in step with it. */
+  async function writeProgress(entry: LibraryEntry, shelf: Shelf, page: number, at: Date): Promise<void> {
     await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
       shelf,
       page,
-      isbn,
+      entry.isbn,
     ]);
+    if (shelf === 'read' && entry.shelf !== 'read') {
+      await database.run('INSERT OR REPLACE INTO finish_dates (isbn, finished_at) VALUES (?, ?)', [
+        entry.isbn,
+        at.toISOString(),
+      ]);
+    } else if (shelf !== 'read' && entry.shelf === 'read') {
+      await database.run('DELETE FROM finish_dates WHERE isbn = ?', [entry.isbn]);
+    }
   }
 
   /** The Book's length in pages, or null if unknown (or the Book's details were never saved). */
@@ -309,7 +338,7 @@ export async function openStorage(
                 }),
         }));
       },
-      async moveToShelf(isbn, shelf) {
+      async moveToShelf(isbn, shelf, at = new Date()) {
         const entry = await requireEntry(isbn);
         const pageCount = await pageCountOf(isbn);
         let page = entry.currentPage;
@@ -320,7 +349,7 @@ export async function openStorage(
         } else if (shelf === 'reading' && entry.shelf === 'read') {
           page = 0; // reading it again
         }
-        await writeProgress(isbn, shelf, page);
+        await writeProgress(entry, shelf, page, at);
       },
       async setFavorite(isbn, favorite) {
         await requireEntry(isbn);
@@ -329,11 +358,17 @@ export async function openStorage(
           [isbn],
         );
       },
+      async finishes() {
+        const rows = await database.getAll<{ isbn: string; finished_at: string }>(
+          'SELECT isbn, finished_at FROM finish_dates ORDER BY finished_at, isbn',
+        );
+        return rows.map((row) => ({ isbn: row.isbn, finishedAt: row.finished_at }));
+      },
       async favoriteIsbns() {
         const rows = await database.getAll<{ isbn: string }>('SELECT isbn FROM favorites ORDER BY isbn');
         return rows.map((row) => row.isbn);
       },
-      async recordPage(isbn, page) {
+      async recordPage(isbn, page, at = new Date()) {
         if (!Number.isInteger(page)) {
           throw new InvalidPageError('The page must be a whole number.');
         }
@@ -355,7 +390,7 @@ export async function openStorage(
         } else if (page > 0 && shelf === 'want-to-read') {
           shelf = 'reading';
         }
-        await writeProgress(isbn, shelf, page);
+        await writeProgress(entry, shelf, page, at);
       },
       async remove(isbn) {
         await database.exec('BEGIN');
@@ -473,6 +508,26 @@ export async function openStorage(
           [isbn],
         );
         return rows.map(toSession);
+      },
+    },
+    goals: {
+      async getYearlyBooks() {
+        const [row] = await database.getAll<{ target: number }>(
+          "SELECT target FROM goals WHERE kind = 'yearly-books'",
+        );
+        return row?.target ?? null;
+      },
+      async setYearlyBooks(target) {
+        if (!Number.isInteger(target) || target < 1 || target > MAX_YEARLY_BOOKS_GOAL) {
+          throw new InvalidGoalError(`The goal must be a whole number of books from 1 to ${MAX_YEARLY_BOOKS_GOAL}.`);
+        }
+        await database.run(
+          "INSERT INTO goals (kind, target) VALUES ('yearly-books', ?) ON CONFLICT(kind) DO UPDATE SET target = excluded.target",
+          [target],
+        );
+      },
+      async removeYearlyBooks() {
+        await database.run("DELETE FROM goals WHERE kind = 'yearly-books'");
       },
     },
     reviews: {
