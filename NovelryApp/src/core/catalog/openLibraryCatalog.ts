@@ -1,7 +1,9 @@
 import type { Book } from './book';
 
 const BASE_URL = 'https://openlibrary.org';
+const COVERS_URL = 'https://covers.openlibrary.org';
 const MAX_GENRES = 5;
+const SEARCH_PAGE_SIZE = 20;
 /** Open Library asks API clients to identify themselves. */
 const USER_AGENT = 'Novelry/0.1 (+https://github.com/LorenzoLatinne/Novelry)';
 
@@ -17,8 +19,23 @@ type OpenLibraryBook = {
   cover?: { medium?: string };
 };
 
+type OpenLibrarySearchDoc = {
+  title?: string;
+  author_name?: string[];
+  subject?: string[];
+  isbn?: string[];
+  cover_i?: number;
+  first_publish_year?: number;
+  number_of_pages_median?: number;
+};
+
+type OpenLibrarySearchResponse = { numFound?: number; docs?: OpenLibrarySearchDoc[] };
+
+export type SearchResult = { books: Book[]; total: number };
+
 export interface BookCatalog {
   getBookByIsbn(isbn: string): Promise<Book | null>;
+  searchBooks(query: string, options?: { page?: number }): Promise<SearchResult>;
 }
 
 /** The Reader has no internet connection (or Open Library cannot be reached). */
@@ -43,6 +60,24 @@ function normalizeIsbn(input: string): string {
 
 export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCatalog {
   const booksByIsbn = new Map<string, Book>();
+  const searchResults = new Map<string, SearchResult>();
+
+  async function getJson<T>(url: string): Promise<T> {
+    let response: FetchResponse;
+    try {
+      response = await options.fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    } catch {
+      throw new CatalogOfflineError();
+    }
+    if (!response.ok) {
+      throw new CatalogUnavailableError(`status ${response.status}`);
+    }
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new CatalogUnavailableError('unreadable response');
+    }
+  }
 
   return {
     async getBookByIsbn(input) {
@@ -52,23 +87,9 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
         return cached;
       }
 
-      const url = `${BASE_URL}/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
-      let response: FetchResponse;
-      try {
-        response = await options.fetch(url, { headers: { 'User-Agent': USER_AGENT } });
-      } catch {
-        throw new CatalogOfflineError();
-      }
-      if (!response.ok) {
-        throw new CatalogUnavailableError(`status ${response.status}`);
-      }
-
-      let payload: Record<string, OpenLibraryBook>;
-      try {
-        payload = (await response.json()) as Record<string, OpenLibraryBook>;
-      } catch {
-        throw new CatalogUnavailableError('unreadable response');
-      }
+      const payload = await getJson<Record<string, OpenLibraryBook>>(
+        `${BASE_URL}/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`,
+      );
       const raw = payload[`ISBN:${isbn}`];
       const title = raw?.title;
       if (!title) {
@@ -78,6 +99,56 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
       booksByIsbn.set(isbn, book);
       return book;
     },
+
+    async searchBooks(query, { page: requestedPage = 1 } = {}) {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        return { books: [], total: 0 };
+      }
+      const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+      const cacheKey = `${trimmed.toLowerCase()}|${page}`;
+      const cached = searchResults.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      const fields =
+        'title,author_name,subject,isbn,cover_i,first_publish_year,number_of_pages_median';
+      const payload = await getJson<OpenLibrarySearchResponse>(
+        `${BASE_URL}/search.json?q=${encodeURIComponent(trimmed)}&page=${page}&limit=${SEARCH_PAGE_SIZE}&fields=${fields}`,
+      );
+      const docs = Array.isArray(payload.docs) ? payload.docs : [];
+      const result: SearchResult = {
+        books: docs.flatMap((doc) => {
+          const book = searchDocToBook(doc);
+          return book ? [book] : [];
+        }),
+        total: payload.numFound ?? 0,
+      };
+      searchResults.set(cacheKey, result);
+      return result;
+    },
+  };
+}
+
+function isIsbn13(candidate: string): boolean {
+  return candidate.length === 13;
+}
+
+function searchDocToBook(doc: OpenLibrarySearchDoc): Book | null {
+  const isbns = doc.isbn ?? [];
+  const isbn = isbns.find(isIsbn13) ?? isbns[0];
+  if (!doc.title || !isbn) {
+    return null;
+  }
+  return {
+    isbn,
+    title: doc.title,
+    authors: doc.author_name ?? [],
+    genres: (doc.subject ?? []).slice(0, MAX_GENRES),
+    ...(doc.number_of_pages_median ? { pageCount: doc.number_of_pages_median } : {}),
+    ...(doc.first_publish_year ? { publishedYear: doc.first_publish_year } : {}),
+    ...(doc.cover_i ? { coverUrl: `${COVERS_URL}/b/id/${doc.cover_i}-M.jpg` } : {}),
   };
 }
 

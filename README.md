@@ -11,10 +11,10 @@ A personal reading companion. Track what you read, set goals, time your reading 
 
 Done:
 - On-device storage with versioned migrations (your data stays on your phone)
-- Look up a book by ISBN through [Open Library](https://openlibrary.org) (core logic only, no screen yet)
+- Look up a book by ISBN, and search by title or author, through [Open Library](https://openlibrary.org) (core logic only, no screens yet)
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):
-- Search books, scan an ISBN barcode, keep a Library with the shelves *Want to read*, *Reading* and *Read*
+- Search and scan screens, an ISBN barcode scanner, keep a Library with the shelves *Want to read*, *Reading* and *Read*
 - Reading sessions with a timer, reviews and ratings
 - Reading goals (books per year, minutes per day) and achievements
 - Transparent on-device recommendations ("because you read …")
