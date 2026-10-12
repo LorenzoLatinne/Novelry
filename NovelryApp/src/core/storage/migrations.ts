@@ -57,4 +57,8 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 5,
+    sql: `ALTER TABLE library_entries ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

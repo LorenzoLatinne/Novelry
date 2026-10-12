@@ -80,4 +80,24 @@ describe('LibraryScreen', () => {
 
     expect(await screen.findByText('Frank Herbert · Reading · 25%')).toBeTruthy();
   });
+
+  it('narrows to Favorites, on top of the other filters', async () => {
+    const storage = await openStorage(createTestDatabase());
+    for (const { isbn, title, author } of LIBRARY) {
+      await storage.library.add({ isbn, title, authors: [author], genres: [] });
+    }
+    await storage.library.setFavorite('9780441172719', true);
+    const catalog = createOpenLibraryCatalog({ fetch: jest.fn() });
+    await render(<RootNavigator services={{ storage, catalog }} />);
+    await screen.findByText('The Hobbit');
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: '♥ Favorites' }));
+
+    expect(screen.getByText(/Dune/)).toBeTruthy();
+    expect(screen.queryByText('The Hobbit')).toBeNull();
+    expect(screen.queryByText('Emma')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: '♥ Favorites' }));
+    expect(screen.getByText('The Hobbit')).toBeTruthy();
+  });
 });

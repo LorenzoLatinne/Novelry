@@ -8,6 +8,8 @@ export type LibraryEntry = {
   shelf: Shelf;
   currentPage: number;
   addedAt: string;
+  /** Marked by the Reader as a Favorite; shapes Recommendations. Lost if the Book leaves the Library. */
+  favorite: boolean;
 };
 
 /** A Library Entry with its Book; the Book is null if its details were never saved. */
@@ -104,6 +106,8 @@ export interface Library {
    * resets it to 0, and Reading keeps it, except that a finished Book starts again from 0.
    */
   moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
+  /** Marks or unmarks a Book already in the Library as a Favorite. */
+  setFavorite(isbn: string, favorite: boolean): Promise<void>;
   /**
    * Records how far the Reader has got. The Shelf follows: the first page moves Want to read to
    * Reading, the last page moves the Book to Read, and going back from the last page returns it to Reading.
@@ -131,7 +135,7 @@ export interface Storage {
   reviews: Reviews;
 }
 
-type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string };
+type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string; favorite: number };
 
 type ReviewRow = { isbn: string; rating: number; comment: string; created_at: string; updated_at: string };
 
@@ -166,7 +170,13 @@ function toEntry(row: EntryRow): LibraryEntry {
   if (!isShelf(row.shelf)) {
     throw new Error(`Unknown Shelf "${row.shelf}" stored for ${row.isbn}.`);
   }
-  return { isbn: row.isbn, shelf: row.shelf, currentPage: row.current_page, addedAt: row.added_at };
+  return {
+    isbn: row.isbn,
+    shelf: row.shelf,
+    currentPage: row.current_page,
+    addedAt: row.added_at,
+    favorite: row.favorite === 1,
+  };
 }
 
 function toBook(row: BookRow): Book {
@@ -219,7 +229,7 @@ export async function openStorage(
     }
   }
 
-  const ENTRY_COLUMNS = 'isbn, shelf, current_page, added_at';
+  const ENTRY_COLUMNS = 'isbn, shelf, current_page, added_at, favorite';
 
   async function findEntry(isbn: string): Promise<LibraryEntry | null> {
     const [row] = await database.getAll<EntryRow>(
@@ -275,7 +285,7 @@ export async function openStorage(
       },
       async listWithBooks() {
         const rows = await database.getAll<EntryRow & Partial<Record<`b_${keyof BookRow}`, unknown>>>(
-          `SELECT e.isbn, e.shelf, e.current_page, e.added_at,
+          `SELECT e.isbn, e.shelf, e.current_page, e.added_at, e.favorite,
                   b.isbn AS b_isbn, b.title AS b_title, b.authors AS b_authors, b.genres AS b_genres,
                   b.page_count AS b_page_count, b.published_year AS b_published_year,
                   b.cover_url AS b_cover_url, b.description AS b_description
@@ -311,6 +321,10 @@ export async function openStorage(
           page = 0; // reading it again
         }
         await writeProgress(isbn, shelf, page);
+      },
+      async setFavorite(isbn, favorite) {
+        await requireEntry(isbn);
+        await database.run('UPDATE library_entries SET favorite = ? WHERE isbn = ?', [favorite ? 1 : 0, isbn]);
       },
       async recordPage(isbn, page) {
         if (!Number.isInteger(page)) {

@@ -224,6 +224,22 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       {entry ? (
         <>
           <Text style={styles.shelf}>In your Library · {SHELF_LABELS[entry.shelf]}</Text>
+          <Pressable
+            accessibilityLabel="Favorite"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: entry.favorite }}
+            onPress={() =>
+              change(
+                () => storage.library.setFavorite(book.isbn, !entry.favorite),
+                'Could not update your Favorites. Please try again.',
+              )
+            }
+            style={styles.favoriteButton}
+          >
+            <Text style={[styles.favoriteText, entry.favorite && styles.favoriteOn]}>
+              {entry.favorite ? '♥ Favorite' : '♡ Add to Favorites'}
+            </Text>
+          </Pressable>
           <View style={styles.progress}>
             <Text accessibilityRole="header" style={styles.progressTitle}>
               Your progress
@@ -459,6 +475,9 @@ const styles = StyleSheet.create({
   facts: { fontSize: 14, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   description: { fontSize: 16, color: colors.text, marginTop: 16, lineHeight: 22 },
   shelf: { fontSize: 16, fontWeight: '600', color: colors.primary, marginTop: 24 },
+  favoriteButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 8 },
+  favoriteText: { fontSize: 16, color: colors.textMuted },
+  favoriteOn: { color: colors.primary, fontWeight: '600' },
   timer: { fontSize: 36, fontWeight: '700', color: colors.primary, marginTop: 8, fontVariant: ['tabular-nums'] },
   progress: { alignItems: 'center', marginTop: 16 },
   progressTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
