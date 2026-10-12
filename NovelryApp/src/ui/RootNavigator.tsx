@@ -33,7 +33,6 @@ const theme = {
   },
 };
 
-
 function Tabs() {
   return (
     <Tab.Navigator>

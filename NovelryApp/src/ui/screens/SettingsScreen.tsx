@@ -14,13 +14,10 @@ export function SettingsScreen() {
     setMessage(null);
     try {
       await exportAndShare(storage);
-      setMessage('Your data was exported. Keep the file safe: it holds your whole reading history.');
+      // The share sheet gives no way to tell whether the Reader saved the file or backed out, so say neither.
+      setMessage('Your export file is ready. If you saved it, keep it safe: it holds your whole reading history.');
     } catch (error) {
-      setMessage(
-        error instanceof SharingUnavailableError
-          ? 'This phone cannot share files right now.'
-          : 'Could not export your data. Please try again.',
-      );
+      setMessage(error instanceof SharingUnavailableError ? error.message : 'Could not export your data. Please try again.');
     } finally {
       setExporting(false);
     }

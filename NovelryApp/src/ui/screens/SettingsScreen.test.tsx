@@ -10,14 +10,15 @@ const mockShare = jest.fn();
 const mockAvailable = jest.fn();
 
 jest.mock('expo-file-system', () => ({
-  Paths: { cache: 'file:///cache' },
+  Paths: { cache: Object.assign('file:///cache', { list: () => [] }) },
   File: class {
     uri: string;
     private name: string;
-    constructor(dir: string, name: string) {
-      this.name = name;
-      this.uri = `${dir}/${name}`;
+    constructor(dir: string, name?: string) {
+      this.name = name ?? dir;
+      this.uri = name ? `${dir}/${name}` : dir;
     }
+    delete() {}
     create(options: unknown) {
       mockWritten.push({ name: this.name, text: '', options });
     }
@@ -55,7 +56,7 @@ describe('SettingsScreen: export', () => {
 
     await fireEvent.press(screen.getByText('Export my data'));
 
-    expect(await screen.findByText(/Your data was exported/)).toBeTruthy();
+    expect(await screen.findByText(/Your export file is ready/)).toBeTruthy();
     expect(mockWritten).toHaveLength(1);
     expect(mockWritten[0].name).toMatch(/^novelry-export-\d{4}-\d{2}-\d{2}\.json$/);
     expect(mockWritten[0].options).toEqual({ overwrite: true });
@@ -87,7 +88,7 @@ describe('SettingsScreen: export', () => {
     expect(await screen.findByText('Could not export your data. Please try again.')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Export my data'));
-    expect(await screen.findByText(/Your data was exported/)).toBeTruthy();
+    expect(await screen.findByText(/Your export file is ready/)).toBeTruthy();
   });
 
   it('cannot be started twice while it is working', async () => {
@@ -100,7 +101,7 @@ describe('SettingsScreen: export', () => {
     expect(screen.queryByText('Export my data')).toBeNull();
 
     finishSharing();
-    expect(await screen.findByText(/Your data was exported/)).toBeTruthy();
+    expect(await screen.findByText(/Your export file is ready/)).toBeTruthy();
     expect(mockWritten).toHaveLength(1);
   });
 
