@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
-import { SHELF_LABELS } from '../../core/shelf';
+import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
 import { colors } from '../theme';
 
@@ -26,7 +26,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   const { storage, catalog } = useAppServices();
   const [state, setState] = useState<State>({ kind: 'loading' });
 
-  const [addFailed, setAddFailed] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const latestRequest = useRef(0);
 
   const load = useCallback(
@@ -90,14 +90,32 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     book.publishedYear ? `First published ${book.publishedYear}` : null,
   ].filter(Boolean);
 
-  async function addToLibrary() {
-    setAddFailed(false);
+  async function change(action: () => Promise<void>, failure: string) {
+    setActionError(null);
     try {
-      await storage.library.add(book);
+      await action();
       await load({ quiet: true });
     } catch {
-      setAddFailed(true);
+      setActionError(failure);
     }
+  }
+
+  const addToLibrary = () =>
+    change(() => storage.library.add(book), 'Could not add this book. Please try again.');
+
+  const moveToShelf = (shelf: Shelf) =>
+    change(() => storage.library.moveToShelf(book.isbn, shelf), 'Could not move this book. Please try again.');
+
+  function confirmRemove() {
+    Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () =>
+          change(() => storage.library.remove(book.isbn), 'Could not remove this book. Please try again.'),
+      },
+    ]);
   }
 
   return (
@@ -119,15 +137,38 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       {book.description ? <Text style={styles.description}>{book.description}</Text> : null}
 
       {entry ? (
-        <Text style={styles.shelf}>In your Library · {SHELF_LABELS[entry.shelf]}</Text>
+        <>
+          <Text style={styles.shelf}>In your Library · {SHELF_LABELS[entry.shelf]}</Text>
+          <View accessibilityRole="radiogroup" style={styles.shelves}>
+            {SHELVES.map((shelf) => {
+              const selected = entry.shelf === shelf;
+              return (
+                <Pressable
+                  key={shelf}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  onPress={() => moveToShelf(shelf)}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {SHELF_LABELS[shelf]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable accessibilityRole="button" onPress={confirmRemove} style={styles.removeButton}>
+            <Text style={styles.removeText}>Remove from Library</Text>
+          </Pressable>
+        </>
       ) : (
         <Pressable accessibilityRole="button" onPress={addToLibrary} style={styles.button}>
           <Text style={styles.buttonText}>Add to Library</Text>
         </Pressable>
       )}
-      {addFailed ? (
-        <Text accessibilityLiveRegion="polite" style={styles.message}>
-          Could not add this book. Please try again.
+      {actionError ? (
+        <Text accessibilityLiveRegion="polite" style={[styles.message, styles.actionError]}>
+          {actionError}
         </Text>
       ) : null}
     </ScrollView>
@@ -143,6 +184,23 @@ const styles = StyleSheet.create({
   facts: { fontSize: 14, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   description: { fontSize: 16, color: colors.text, marginTop: 16, lineHeight: 22 },
   shelf: { fontSize: 16, fontWeight: '600', color: colors.primary, marginTop: 24 },
+  shelves: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 12 },
+  chip: {
+    minHeight: 44,
+    justifyContent: 'center',
+    margin: 4,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 14, color: colors.text },
+  chipTextSelected: { color: colors.onPrimary, fontWeight: '600' },
+  removeButton: { marginTop: 16, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+  removeText: { color: colors.error, fontSize: 16, fontWeight: '600' },
+  actionError: { marginTop: 16 },
   message: { fontSize: 16, color: colors.text, textAlign: 'center' },
   button: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, backgroundColor: colors.primary },
   buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },

@@ -14,10 +14,10 @@ Done:
 - Search books by title or author (powered by [Open Library](https://openlibrary.org)) on the Explore tab
 - Book detail screen with *Add to Library*; added Books are saved on the device and show offline
 - Your Library lists the books you added, filterable by shelf and searchable by title or author
+- Move a book between the shelves *Want to read*, *Reading* and *Read*, or remove it from your Library
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):
-- Moving books between the shelves *Want to read*, *Reading* and *Read*
 - Reading sessions with a timer, reviews and ratings
 - Reading goals (books per year, minutes per day) and achievements
 - Transparent on-device recommendations ("because you read …")

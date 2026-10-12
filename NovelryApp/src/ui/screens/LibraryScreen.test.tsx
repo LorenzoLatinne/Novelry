@@ -8,11 +8,10 @@ import { RootNavigator } from '../RootNavigator';
 type TestBook = { isbn: string; title: string; author: string; shelf: Shelf };
 
 async function openLibrary(books: TestBook[]) {
-  const database = createTestDatabase();
-  const storage = await openStorage(database);
+  const storage = await openStorage(createTestDatabase());
   for (const { isbn, title, author, shelf } of books) {
     await storage.library.add({ isbn, title, authors: [author], genres: [] });
-    await database.run('UPDATE library_entries SET shelf = ? WHERE isbn = ?', [shelf, isbn]);
+    await storage.library.moveToShelf(isbn, shelf);
   }
   const catalog = createOpenLibraryCatalog({ fetch: jest.fn() });
   await render(<RootNavigator services={{ storage, catalog }} />);

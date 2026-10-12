@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import fellowship from '../../core/catalog/__fixtures__/fellowship.json';
 import { createOpenLibraryCatalog } from '../../core/catalog/openLibraryCatalog';
 import { openStorage } from '../../core/storage/storage';
@@ -42,5 +43,48 @@ describe('BookDetailScreen', () => {
     await fireEvent.press(screen.getByText('Try again'));
 
     expect(await screen.findByText('The Fellowship of the Ring')).toBeTruthy();
+  });
+
+  it('lets the Reader move a Book between Shelves', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('In your Library · Want to read');
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Reading' }));
+
+    expect(await screen.findByText('In your Library · Reading')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ shelf: 'reading' });
+  });
+
+  it('removes a Book from the Library only after the Reader confirms', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+
+    await fireEvent.press(await screen.findByText('Remove from Library'));
+    expect(await storage.library.find('9780261102354')).not.toBeNull();
+
+    const buttons = alert.mock.calls[0][2]!;
+    await act(async () => buttons.find((b) => b.text === 'Remove')!.onPress!());
+
+    expect(await screen.findByText('Add to Library')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toBeNull();
+    alert.mockRestore();
+  });
+
+  it('keeps the Book when the Reader cancels the removal', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await fireEvent.press(await screen.findByText('Remove from Library'));
+
+    const cancel = alert.mock.calls[0][2]!.find((b) => b.text === 'Cancel')!;
+    await act(async () => cancel.onPress?.());
+
+    expect(await storage.library.find('9780261102354')).not.toBeNull();
+    alert.mockRestore();
   });
 });
