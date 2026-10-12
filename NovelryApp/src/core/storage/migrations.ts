@@ -57,4 +57,9 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 5,
+    // Kept apart from library_entries so a Favorite survives the Book leaving the Library (ADR-0004).
+    sql: `CREATE TABLE favorites (isbn TEXT PRIMARY KEY NOT NULL);`,
+  },
 ];

@@ -42,7 +42,7 @@ describe('storage', () => {
 
     expect(await storage.schemaVersion()).toBe(nextVersion);
     expect(await storage.library.list()).toEqual([
-      { isbn: '9780261102354', shelf: 'reading', currentPage: 120, addedAt: '2026-01-05' },
+      { isbn: '9780261102354', shelf: 'reading', currentPage: 120, addedAt: '2026-01-05', favorite: false },
     ]);
   });
 
@@ -105,7 +105,7 @@ describe('storage', () => {
     ]);
 
     expect(await storage.library.list()).toEqual([
-      { isbn: '9780261102354', shelf: 'read', currentPage: 300, addedAt: '2026-02-01' },
+      { isbn: '9780261102354', shelf: 'read', currentPage: 300, addedAt: '2026-02-01', favorite: false },
     ]);
   });
 
@@ -147,6 +147,7 @@ describe('storage', () => {
           shelf: 'want-to-read',
           currentPage: 0,
           addedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+          favorite: false,
         },
       ]);
     });
@@ -727,6 +728,79 @@ describe('storage', () => {
       await storage.reviews.save('9780000000002', { rating: 2, comment: '' }, T1);
 
       expect((await storage.reviews.all()).map((r) => r.isbn)).toEqual(['9780000000002', fellowship.isbn]);
+    });
+  });
+
+  describe('Favorites', () => {
+    async function libraryWith(book: Book) {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(book);
+      return storage;
+    }
+
+    it('marks a Book as a Favorite, and unmarks it', async () => {
+      const storage = await libraryWith(fellowship);
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: false });
+
+      await storage.library.setFavorite(fellowship.isbn, true);
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
+
+      await storage.library.setFavorite(fellowship.isbn, false);
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: false });
+    });
+
+    it('keeps a Favorite when the Book changes Shelf or progress', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.setFavorite(fellowship.isbn, true);
+
+      await storage.library.recordPage(fellowship.isbn, 545);
+      await storage.library.moveToShelf(fellowship.isbn, 'reading');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
+    });
+
+    it('keeps a Favorite when the same Book is added again', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.setFavorite(fellowship.isbn, true);
+
+      await storage.library.add(fellowship);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
+    });
+
+    it('is still a Favorite when the Book is removed and added back (ADR-0004: history is kept)', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.setFavorite(fellowship.isbn, true);
+      await storage.library.remove(fellowship.isbn);
+      expect(await storage.library.list()).toEqual([]);
+
+      await storage.library.add(fellowship);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
+    });
+
+    it('lists the Favorite Books, including ones no longer in the Library', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.add({ isbn: '9780000000002', title: 'Other', authors: [], genres: [] });
+      await storage.library.setFavorite(fellowship.isbn, true);
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.library.favoriteIsbns()).toEqual([fellowship.isbn]);
+    });
+
+    it('refuses to mark a Book that is not in the Library', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.library.setFavorite('9780000000002', true)).rejects.toThrow(/not in your Library/);
+    });
+
+    it('shows up in listings with its Book', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.setFavorite(fellowship.isbn, true);
+
+      const [item] = await storage.library.listWithBooks();
+
+      expect(item.entry.favorite).toBe(true);
     });
   });
 });

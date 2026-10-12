@@ -252,4 +252,18 @@ describe('BookDetailScreen', () => {
       expect(screen.queryByText(/· 15:00$/)).toBeNull();
     });
   });
+
+  it('marks a Book as a Favorite and unmarks it', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+
+    await fireEvent.press(await screen.findByRole('checkbox', { name: 'Favorite' }));
+    expect(await screen.findByText('♥ Favorite')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ favorite: true });
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Favorite' }));
+    expect(await screen.findByText('♡ Add to Favorites')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ favorite: false });
+  });
 });

@@ -8,6 +8,8 @@ export type LibraryEntry = {
   shelf: Shelf;
   currentPage: number;
   addedAt: string;
+  /** Marked by the Reader as a Favorite. Survives the Book leaving the Library (ADR-0004). */
+  favorite: boolean;
 };
 
 /** A Library Entry with its Book; the Book is null if its details were never saved. */
@@ -104,6 +106,10 @@ export interface Library {
    * resets it to 0, and Reading keeps it, except that a finished Book starts again from 0.
    */
   moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
+  /** Marks or unmarks a Book already in the Library as a Favorite. */
+  setFavorite(isbn: string, favorite: boolean): Promise<void>;
+  /** Every Book ever marked as a Favorite, including ones no longer in the Library. */
+  favoriteIsbns(): Promise<string[]>;
   /**
    * Records how far the Reader has got. The Shelf follows: the first page moves Want to read to
    * Reading, the last page moves the Book to Read, and going back from the last page returns it to Reading.
@@ -131,7 +137,7 @@ export interface Storage {
   reviews: Reviews;
 }
 
-type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string };
+type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string; favorite: number };
 
 type ReviewRow = { isbn: string; rating: number; comment: string; created_at: string; updated_at: string };
 
@@ -166,7 +172,13 @@ function toEntry(row: EntryRow): LibraryEntry {
   if (!isShelf(row.shelf)) {
     throw new Error(`Unknown Shelf "${row.shelf}" stored for ${row.isbn}.`);
   }
-  return { isbn: row.isbn, shelf: row.shelf, currentPage: row.current_page, addedAt: row.added_at };
+  return {
+    isbn: row.isbn,
+    shelf: row.shelf,
+    currentPage: row.current_page,
+    addedAt: row.added_at,
+    favorite: row.favorite === 1, // SQLite stores true/false as 1/0
+  };
 }
 
 function toBook(row: BookRow): Book {
@@ -219,13 +231,12 @@ export async function openStorage(
     }
   }
 
-  const ENTRY_COLUMNS = 'isbn, shelf, current_page, added_at';
+  // A Library Entry with whether its Book is a Favorite (kept in its own table).
+  const ENTRY_SELECT = `SELECT e.isbn, e.shelf, e.current_page, e.added_at, f.isbn IS NOT NULL AS favorite
+                        FROM library_entries e LEFT JOIN favorites f ON f.isbn = e.isbn`;
 
   async function findEntry(isbn: string): Promise<LibraryEntry | null> {
-    const [row] = await database.getAll<EntryRow>(
-      `SELECT ${ENTRY_COLUMNS} FROM library_entries WHERE isbn = ?`,
-      [isbn],
-    );
+    const [row] = await database.getAll<EntryRow>(`${ENTRY_SELECT} WHERE e.isbn = ?`, [isbn]);
     return row ? toEntry(row) : null;
   }
 
@@ -268,18 +279,17 @@ export async function openStorage(
     schemaVersion: () => readVersion(database),
     library: {
       async list() {
-        const rows = await database.getAll<EntryRow>(
-          `SELECT ${ENTRY_COLUMNS} FROM library_entries ORDER BY added_at, isbn`,
-        );
+        const rows = await database.getAll<EntryRow>(`${ENTRY_SELECT} ORDER BY e.added_at, e.isbn`);
         return rows.map(toEntry);
       },
       async listWithBooks() {
         const rows = await database.getAll<EntryRow & Partial<Record<`b_${keyof BookRow}`, unknown>>>(
-          `SELECT e.isbn, e.shelf, e.current_page, e.added_at,
+          `SELECT e.isbn, e.shelf, e.current_page, e.added_at, f.isbn IS NOT NULL AS favorite,
                   b.isbn AS b_isbn, b.title AS b_title, b.authors AS b_authors, b.genres AS b_genres,
                   b.page_count AS b_page_count, b.published_year AS b_published_year,
                   b.cover_url AS b_cover_url, b.description AS b_description
-           FROM library_entries e LEFT JOIN books b ON b.isbn = e.isbn
+           FROM library_entries e LEFT JOIN favorites f ON f.isbn = e.isbn
+           LEFT JOIN books b ON b.isbn = e.isbn
            ORDER BY e.added_at, e.isbn`,
         );
         return rows.map((row) => ({
@@ -311,6 +321,17 @@ export async function openStorage(
           page = 0; // reading it again
         }
         await writeProgress(isbn, shelf, page);
+      },
+      async setFavorite(isbn, favorite) {
+        await requireEntry(isbn);
+        await database.run(
+          favorite ? 'INSERT OR IGNORE INTO favorites (isbn) VALUES (?)' : 'DELETE FROM favorites WHERE isbn = ?',
+          [isbn],
+        );
+      },
+      async favoriteIsbns() {
+        const rows = await database.getAll<{ isbn: string }>('SELECT isbn FROM favorites ORDER BY isbn');
+        return rows.map((row) => row.isbn);
       },
       async recordPage(isbn, page) {
         if (!Number.isInteger(page)) {

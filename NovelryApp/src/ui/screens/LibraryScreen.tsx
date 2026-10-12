@@ -23,6 +23,7 @@ export function LibraryScreen() {
   const [items, setItems] = useState<LibraryEntryWithBook[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [shelf, setShelf] = useState<ShelfChoice>('all');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -47,8 +48,8 @@ export function LibraryScreen() {
   }, [storage, navigation]);
 
   const visible = useMemo(
-    () => viewLibrary(items ?? [], { shelf: shelf === 'all' ? undefined : shelf, query }),
-    [items, shelf, query],
+    () => viewLibrary(items ?? [], { shelf: shelf === 'all' ? undefined : shelf, favoritesOnly, query }),
+    [items, shelf, favoritesOnly, query],
   );
 
   if (failed) {
@@ -87,7 +88,7 @@ export function LibraryScreen() {
         style={styles.input}
         value={query}
       />
-      <View accessibilityRole="tablist" style={styles.chips}>
+      <View accessibilityRole="tablist" style={[styles.chips, styles.shelfChips]}>
         {SHELF_CHOICES.map((choice) => {
           const selected = shelf === choice.value;
           return (
@@ -103,10 +104,21 @@ export function LibraryScreen() {
           );
         })}
       </View>
+      <View style={styles.chips}>
+        <Pressable
+          accessibilityLabel="Favorites only"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: favoritesOnly }}
+          onPress={() => setFavoritesOnly((on) => !on)}
+          style={[styles.chip, favoritesOnly && styles.chipSelected]}
+        >
+          <Text style={[styles.chipText, favoritesOnly && styles.chipTextSelected]}>♥ Favorites</Text>
+        </Pressable>
+      </View>
       {visible.length === 0 ? (
         <View style={styles.center}>
           <Text accessibilityLiveRegion="polite" style={styles.message}>
-            No books match. Try another Shelf or search.
+            No books match. Try another Shelf, Favorites or search.
           </Text>
         </View>
       ) : (
@@ -119,7 +131,13 @@ export function LibraryScreen() {
               onPress={() => navigation.navigate('BookDetail', { isbn: entry.isbn })}
               style={styles.row}
             >
-              <Text style={styles.rowTitle}>{book?.title ?? entry.isbn}</Text>
+              <Text
+                accessibilityLabel={`${book?.title ?? entry.isbn}${entry.favorite ? ', Favorite' : ''}`}
+                style={styles.rowTitle}
+              >
+                {entry.favorite ? '♥ ' : ''}
+                {book?.title ?? entry.isbn}
+              </Text>
               <Text style={styles.rowMeta}>
                 {rowMeta(entry, book)}
               </Text>
@@ -155,6 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 8 },
+  shelfChips: { paddingBottom: 0 },
   chip: {
     minHeight: 44,
     justifyContent: 'center',
