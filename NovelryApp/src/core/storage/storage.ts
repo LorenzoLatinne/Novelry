@@ -10,8 +10,13 @@ export type LibraryEntry = {
   addedAt: string;
 };
 
+/** A Library Entry with its Book; the Book is null if its details were never saved. */
+export type LibraryItem = { entry: LibraryEntry; book: Book | null };
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
+  /** Every Library Entry with its Book, oldest first. */
+  listItems(): Promise<LibraryItem[]>;
   find(isbn: string): Promise<LibraryEntry | null>;
   /** Puts a Book on the Want to read Shelf. A Book already in the Library is left untouched. */
   add(book: Book): Promise<void>;
@@ -108,6 +113,32 @@ export async function openStorage(
           `SELECT ${ENTRY_COLUMNS} FROM library_entries ORDER BY added_at`,
         );
         return rows.map(toEntry);
+      },
+      async listItems() {
+        const rows = await database.getAll<EntryRow & Partial<Record<`b_${keyof BookRow}`, unknown>>>(
+          `SELECT e.isbn, e.shelf, e.current_page, e.added_at,
+                  b.isbn AS b_isbn, b.title AS b_title, b.authors AS b_authors, b.genres AS b_genres,
+                  b.page_count AS b_page_count, b.published_year AS b_published_year,
+                  b.cover_url AS b_cover_url, b.description AS b_description
+           FROM library_entries e LEFT JOIN books b ON b.isbn = e.isbn
+           ORDER BY e.added_at`,
+        );
+        return rows.map((row) => ({
+          entry: toEntry(row),
+          book:
+            row.b_isbn == null
+              ? null
+              : toBook({
+                  isbn: row.b_isbn as string,
+                  title: row.b_title as string,
+                  authors: row.b_authors as string,
+                  genres: row.b_genres as string,
+                  page_count: row.b_page_count as number | null,
+                  published_year: row.b_published_year as number | null,
+                  cover_url: row.b_cover_url as string | null,
+                  description: row.b_description as string | null,
+                }),
+        }));
       },
       async find(isbn) {
         const [row] = await database.getAll<EntryRow>(
