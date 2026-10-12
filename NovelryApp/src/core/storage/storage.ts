@@ -184,6 +184,8 @@ export interface Library {
 /** Books the device has seen, so they can be shown without internet. */
 export interface BookCache {
   get(isbn: string): Promise<Book | null>;
+  /** Every Book the device has saved, in a steady order (by ISBN). */
+  all(): Promise<Book[]>;
 }
 
 export interface Storage {
@@ -673,6 +675,10 @@ export async function openStorage(
       },
     },
     books: {
+      async all() {
+        const rows = await database.getAll<BookRow>('SELECT * FROM books ORDER BY isbn');
+        return rows.map(toBook);
+      },
       async get(isbn) {
         const [row] = await database.getAll<BookRow>('SELECT * FROM books WHERE isbn = ?', [isbn]);
         return row ? toBook(row) : null;

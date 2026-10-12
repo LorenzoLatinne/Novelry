@@ -21,12 +21,13 @@ Done:
 - Set a yearly reading goal (books per year) and a daily goal (minutes per day), and follow your progress on the Dashboard, which also shows the book you are reading right now (ticking live) and how many books you finished this year
 - Recommendations on the Explore tab, each with the reason ("Because you rated …"). They are worked out on your phone from the books you finished, rated or favorited; you can dismiss any you are not interested in
 - Earn achievements (finished books, reading time, reading streaks). Once earned they stay earned, and you are told about new ones once
+- Export all your data (library, reviews, sessions, goals, favorites, achievements) as one JSON file from Settings, to back up or move phones
 - Mark books as Favorites and filter your Library by them
 - Move a book between the shelves *Want to read*, *Reading* and *Read*, or remove it from your Library
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):
-- Export and import your data as a single file, to move between phones
+- Import a backup file, to move between phones
 
 ## Principles
 
