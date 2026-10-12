@@ -93,4 +93,9 @@ export const MIGRATIONS: Migration[] = [
       UPDATE earned_achievements SET seen = 1;
     `,
   },
+  {
+    version: 9,
+    // Books the Reader said they are not interested in; kept so they are never recommended again.
+    sql: `CREATE TABLE dismissed_recommendations (isbn TEXT PRIMARY KEY NOT NULL, dismissed_at TEXT NOT NULL);`,
+  },
 ];

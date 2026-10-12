@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Book } from '../../core/catalog/book';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { useAppServices } from '../AppServices';
+import { RecommendationsSection } from './RecommendationsSection';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 
@@ -102,7 +103,12 @@ function Results({
 }) {
   switch (state.kind) {
     case 'idle':
-      return <Message text="Search for a book by title or author." />;
+      return (
+        <ScrollView keyboardShouldPersistTaps="handled">
+          <Message text="Search for a book by title or author." />
+          <RecommendationsSection onOpen={onOpen} />
+        </ScrollView>
+      );
     case 'searching':
       return (
         <View style={styles.centered}>

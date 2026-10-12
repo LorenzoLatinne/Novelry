@@ -138,6 +138,15 @@ export interface EarnedAchievements {
   markSeen(ids: string[]): Promise<void>;
 }
 
+export interface Dismissals {
+  /** Remembers that the Reader is not interested in a Book. Dismissing it again changes nothing. */
+  add(isbn: string, at?: Date): Promise<void>;
+  /** Every dismissed Book, in a steady order. */
+  all(): Promise<string[]>;
+  /** Forgets every dismissal, so dismissed Books may be recommended again. */
+  clear(): Promise<void>;
+}
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
@@ -185,6 +194,7 @@ export interface Storage {
   reviews: Reviews;
   goals: Goals;
   achievements: EarnedAchievements;
+  dismissals: Dismissals;
 }
 
 type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string; favorite: number };
@@ -579,6 +589,21 @@ export async function openStorage(
           [isbn],
         );
         return rows.map(toSession);
+      },
+    },
+    dismissals: {
+      async add(isbn, at = new Date()) {
+        await database.run('INSERT OR IGNORE INTO dismissed_recommendations (isbn, dismissed_at) VALUES (?, ?)', [
+          isbn,
+          at.toISOString(),
+        ]);
+      },
+      async all() {
+        const rows = await database.getAll<{ isbn: string }>('SELECT isbn FROM dismissed_recommendations ORDER BY isbn');
+        return rows.map((row) => row.isbn);
+      },
+      async clear() {
+        await database.run('DELETE FROM dismissed_recommendations');
       },
     },
     achievements: {
