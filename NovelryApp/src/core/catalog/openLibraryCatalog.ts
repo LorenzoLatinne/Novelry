@@ -1,6 +1,7 @@
 import type { Book } from './book';
 
 const BASE_URL = 'https://openlibrary.org';
+const COVERS_URL = 'https://covers.openlibrary.org';
 const MAX_GENRES = 5;
 const SEARCH_PAGE_SIZE = 20;
 /** Open Library asks API clients to identify themselves. */
@@ -59,6 +60,7 @@ function normalizeIsbn(input: string): string {
 
 export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCatalog {
   const booksByIsbn = new Map<string, Book>();
+  const searchResults = new Map<string, SearchResult>();
 
   async function getJson<T>(url: string): Promise<T> {
     let response: FetchResponse;
@@ -98,10 +100,16 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
       return book;
     },
 
-    async searchBooks(query, { page = 1 } = {}) {
+    async searchBooks(query, { page: requestedPage = 1 } = {}) {
       const trimmed = query.trim();
       if (!trimmed) {
         return { books: [], total: 0 };
+      }
+      const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+      const cacheKey = `${trimmed.toLowerCase()}|${page}`;
+      const cached = searchResults.get(cacheKey);
+      if (cached) {
+        return cached;
       }
 
       const fields =
@@ -109,20 +117,27 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
       const payload = await getJson<OpenLibrarySearchResponse>(
         `${BASE_URL}/search.json?q=${encodeURIComponent(trimmed)}&page=${page}&limit=${SEARCH_PAGE_SIZE}&fields=${fields}`,
       );
-      return {
-        books: (payload.docs ?? []).flatMap((doc) => {
+      const docs = Array.isArray(payload.docs) ? payload.docs : [];
+      const result: SearchResult = {
+        books: docs.flatMap((doc) => {
           const book = searchDocToBook(doc);
           return book ? [book] : [];
         }),
         total: payload.numFound ?? 0,
       };
+      searchResults.set(cacheKey, result);
+      return result;
     },
   };
 }
 
+function isIsbn13(candidate: string): boolean {
+  return candidate.length === 13;
+}
+
 function searchDocToBook(doc: OpenLibrarySearchDoc): Book | null {
   const isbns = doc.isbn ?? [];
-  const isbn = isbns.find((candidate) => candidate.length === 13) ?? isbns[0];
+  const isbn = isbns.find(isIsbn13) ?? isbns[0];
   if (!doc.title || !isbn) {
     return null;
   }
@@ -133,7 +148,7 @@ function searchDocToBook(doc: OpenLibrarySearchDoc): Book | null {
     genres: (doc.subject ?? []).slice(0, MAX_GENRES),
     ...(doc.number_of_pages_median ? { pageCount: doc.number_of_pages_median } : {}),
     ...(doc.first_publish_year ? { publishedYear: doc.first_publish_year } : {}),
-    ...(doc.cover_i ? { coverUrl: `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` } : {}),
+    ...(doc.cover_i ? { coverUrl: `${COVERS_URL}/b/id/${doc.cover_i}-M.jpg` } : {}),
   };
 }
 

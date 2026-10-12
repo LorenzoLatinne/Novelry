@@ -173,4 +173,32 @@ describe('Open Library catalog: search', () => {
     await expect(offline.searchBooks('tolkien')).rejects.toBeInstanceOf(CatalogOfflineError);
     await expect(broken.searchBooks('tolkien')).rejects.toBeInstanceOf(CatalogUnavailableError);
   });
+
+  it('does not ask Open Library twice for the same query and page', async () => {
+    const fetch = respondWith(searchTolkien);
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    await catalog.searchBooks('tolkien');
+    await catalog.searchBooks('  Tolkien ');
+    await catalog.searchBooks('tolkien', { page: 2 });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats an invalid page number as the first page', async () => {
+    const fetch = respondWith({ numFound: 0, docs: [] });
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    await catalog.searchBooks('tolkien', { page: 0 });
+    await catalog.searchBooks('hobbit', { page: Number.NaN });
+
+    expect(fetch.mock.calls[0][0]).toContain('page=1');
+    expect(fetch.mock.calls[1][0]).toContain('page=1');
+  });
+
+  it('copes with a response that has no usable results', async () => {
+    const catalog = createOpenLibraryCatalog({ fetch: respondWith({ numFound: 3, docs: 'oops' }) });
+
+    expect(await catalog.searchBooks('tolkien')).toEqual({ books: [], total: 3 });
+  });
 });
