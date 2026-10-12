@@ -12,7 +12,7 @@ describe('RootNavigator', () => {
     expect(await screen.findByText('Your Library is empty')).toBeTruthy();
 
     for (const [tab, message] of [
-      ['Explore', 'Search for your next book.'],
+      ['Explore', 'Search for a book by title or author.'],
       ['Dashboard', 'Your reading goals and stats.'],
       ['Settings', 'Privacy, support and your data.'],
     ]) {
