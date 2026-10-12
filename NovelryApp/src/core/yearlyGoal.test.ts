@@ -1,4 +1,4 @@
-import { yearlyGoalProgress } from './yearlyGoal';
+import { booksFinishedInYear, yearlyGoalProgress } from './yearlyGoal';
 
 const BRUSSELS = 'Europe/Brussels';
 const finish = (isbn: string, at: string) => ({ isbn, finishedAt: at });
@@ -65,5 +65,26 @@ describe('yearlyGoalProgress', () => {
     const finishes = Array.from({ length: 199 }, (_, i) => finish(String(i), '2026-03-01T10:00:00Z'));
 
     expect(yearlyGoalProgress(200, finishes, now, BRUSSELS)).toMatchObject({ percent: 99, reached: false });
+  });
+});
+
+describe('booksFinishedInYear', () => {
+  const now = new Date('2026-06-15T12:00:00Z');
+
+  it('counts the different Books finished in the current year, by the Reader’s calendar', () => {
+    const finishes = [
+      finish('1', '2026-01-10T10:00:00Z'),
+      finish('1', '2026-03-10T10:00:00Z'), // the same Book again
+      finish('2', '2026-05-02T10:00:00Z'),
+      finish('3', '2025-12-31T10:00:00Z'), // last year
+      finish('4', '2025-12-31T23:30:00Z'), // 00:30 on 1 Jan in Brussels: this year there
+    ];
+
+    expect(booksFinishedInYear(finishes, now, BRUSSELS)).toBe(3);
+    expect(booksFinishedInYear(finishes, now, 'UTC')).toBe(2);
+  });
+
+  it('is zero when nothing was finished', () => {
+    expect(booksFinishedInYear([], now, BRUSSELS)).toBe(0);
   });
 });

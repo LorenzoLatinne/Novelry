@@ -1,43 +1,35 @@
-import { useNavigation } from '@react-navigation/native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { readingTime, type ReadingTime } from '../../core/readingTime';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { dashboardView, loadDashboard, type DashboardData } from '../../core/dashboard';
+import { formatDuration } from '../../core/duration';
+import { localParts, msUntilNextLocalDay } from '../../core/localTime';
 import { InvalidGoalError, MAX_DAILY_MINUTES_GOAL, MAX_YEARLY_BOOKS_GOAL } from '../../core/storage/storage';
-import { localParts } from '../../core/localTime';
-import { dailyGoalProgress, type DailyGoalProgress } from '../../core/dailyGoal';
-import { yearlyGoalProgress, type YearlyGoalProgress } from '../../core/yearlyGoal';
 import { useAppServices } from '../AppServices';
+import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 import { deviceTimeZone } from '../timeZone';
 import { GoalCard, type GoalCopy } from './GoalCard';
 
 export function DashboardScreen() {
   const { storage } = useAppServices();
-  const navigation = useNavigation();
-  const [time, setTime] = useState<ReadingTime | null>(null);
-  const [yearlyGoal, setYearlyGoal] = useState<YearlyGoalProgress | null>(null);
-  const [dailyGoal, setDailyGoal] = useState<DailyGoalProgress | null>(null);
-  const [year, setYear] = useState(() => localParts(Date.now(), deviceTimeZone()).year);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [now, setNow] = useState(() => new Date());
+  const timeZone = deviceTimeZone();
+  const focused = useIsFocused();
 
   const latestLoad = useRef(0);
 
   const reload = useCallback(async () => {
     const load = ++latestLoad.current;
-    const now = new Date();
-    const timeZone = deviceTimeZone();
-    const [sessions, yearlyTarget, dailyTarget, finishes] = await Promise.all([
-      storage.sessions.all(),
-      storage.goals.getYearlyBooks(),
-      storage.goals.getDailyMinutes(),
-      storage.library.finishes(),
-    ]);
+    const loaded = await loadDashboard(storage);
     if (load !== latestLoad.current) {
       return; // a newer load has started; its answer wins
     }
-    setTime(readingTime(sessions, now, timeZone));
-    setYear(localParts(now.getTime(), timeZone).year);
-    setYearlyGoal(yearlyTarget === null ? null : yearlyGoalProgress(yearlyTarget, finishes, now, timeZone));
-    setDailyGoal(dailyTarget === null ? null : dailyGoalProgress(dailyTarget, sessions, now, timeZone));
+    setData(loaded);
+    setNow(new Date());
   }, [storage]);
 
   useEffect(() => {
@@ -49,6 +41,39 @@ export function DashboardScreen() {
       unsubscribe();
     };
   }, [reload, navigation]);
+
+  // While a session is running its time ticks every second; nothing is loaded again for that.
+  // Timers only run while the Dashboard is on screen; reloading on focus catches everything up.
+  const running = data?.runningSession?.id ?? null;
+  useEffect(() => {
+    if (running === null || !focused) {
+      return;
+    }
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [running, focused]);
+
+  // The day (and the year) change at the Reader's midnight, even if nothing else happens.
+  const today = localParts(now.getTime(), timeZone).day;
+  useEffect(() => {
+    if (!focused) {
+      return;
+    }
+    const timer = setTimeout(() => setNow(new Date()), msUntilNextLocalDay(new Date(), timeZone) + 1000);
+    return () => clearTimeout(timer);
+  }, [today, timeZone, focused]);
+
+  // A timer can be paused while the app is in the background: look at the clock again on return.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setNow(new Date());
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  const view = useMemo(() => (data ? dashboardView(data, now, timeZone) : null), [data, now, timeZone]);
 
   async function saveGoal(save: () => Promise<void>): Promise<string | null> {
     try {
@@ -70,18 +95,47 @@ export function DashboardScreen() {
     }
   }
 
+  const currentSession = view?.currentSession ?? null;
+  const yearlyGoal = view?.yearlyGoal ?? null;
+  const dailyGoal = view?.dailyGoal ?? null;
+
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
+      {currentSession ? (
+        <View style={styles.nowCard}>
+          <Text style={styles.nowLabel}>Reading now</Text>
+          <Text style={styles.nowTitle}>{currentSession.title}</Text>
+          <Text accessibilityRole="timer" style={styles.nowTime}>
+            {formatDuration(currentSession.elapsedSeconds)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('BookDetail', { isbn: currentSession.isbn })}
+            style={styles.nowButton}
+          >
+            <Text style={styles.nowButtonText}>Open book</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <Text accessibilityRole="header" style={styles.title}>
         Reading time
       </Text>
       <View style={styles.row}>
-        <Stat label="Today" seconds={time?.today} />
-        <Stat label="This week" seconds={time?.thisWeek} />
-        <Stat label="This year" seconds={time?.thisYear} />
+        <Stat label="Today" value={view && formatHours(view.readingTime.today)} />
+        <Stat label="This week" value={view && formatHours(view.readingTime.thisWeek)} />
+        <Stat label="This year" value={view && formatHours(view.readingTime.thisYear)} />
       </View>
+
+      <Text accessibilityRole="header" style={styles.title}>
+        Books
+      </Text>
+      <View style={styles.row}>
+        <Stat label={`Read in ${view?.year ?? ''}`.trim()} value={view && String(view.booksThisYear)} />
+      </View>
+
       <GoalCard
-        copy={yearlyCopy(year)}
+        copy={yearlyCopy(view?.year ?? localParts(now.getTime(), timeZone).year)}
         currentTarget={yearlyGoal?.target ?? null}
         progress={
           yearlyGoal && {
@@ -106,7 +160,7 @@ export function DashboardScreen() {
         onSet={(target) => saveGoal(() => storage.goals.setDailyMinutes(target))}
         onRemove={() => removeGoal(() => storage.goals.removeDailyMinutes())}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -142,10 +196,10 @@ const DAILY_COPY: GoalCopy = {
   barLabel: (percent) => `${percent} percent of today’s goal`,
 };
 
-function Stat({ label, seconds }: { label: string; seconds: number | undefined }) {
+function Stat({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <View accessible style={styles.stat}>
-      <Text style={styles.statValue}>{seconds === undefined ? '–' : formatHours(seconds)}</Text>
+      <Text style={styles.statValue}>{value ?? '–'}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -161,8 +215,15 @@ function formatHours(seconds: number): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 16 },
+  scroll: { flex: 1, backgroundColor: colors.background },
+  container: { padding: 24 },
+  title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 16, marginTop: 8 },
+  nowCard: { padding: 16, borderRadius: 12, backgroundColor: colors.primary, marginBottom: 16, alignItems: 'center' },
+  nowLabel: { fontSize: 14, color: colors.onPrimary },
+  nowTitle: { fontSize: 18, fontWeight: '700', color: colors.onPrimary, marginTop: 4, textAlign: 'center' },
+  nowTime: { fontSize: 36, fontWeight: '700', color: colors.onPrimary, marginTop: 4, fontVariant: ['tabular-nums'] },
+  nowButton: { marginTop: 8, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+  nowButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600', textDecorationLine: 'underline' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: {
     flex: 1,

@@ -45,3 +45,9 @@ export function startOfLocalDay(year: number, month: number, day: number, timeZo
   const first = asIfUtc - offsetAt(asIfUtc, timeZone);
   return asIfUtc - offsetAt(first, timeZone);
 }
+
+/** Milliseconds from `now` until the Reader's next midnight, when the day (and maybe the year) changes. */
+export function msUntilNextLocalDay(now: Date, timeZone: string): number {
+  const { year, month, day } = localParts(now.getTime(), timeZone);
+  return startOfLocalDay(year, month, day + 1, timeZone) - now.getTime();
+}

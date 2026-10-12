@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { createOpenLibraryCatalog } from '../../core/catalog/openLibraryCatalog';
 import { openStorage } from '../../core/storage/storage';
 import { createTestDatabase } from '../../core/storage/testDatabase';
@@ -192,6 +192,133 @@ describe('DashboardScreen', () => {
         expect(await screen.findByText(/whole number of minutes/)).toBeTruthy();
       }
       expect(await storage.goals.getDailyMinutes()).toBeNull();
+    });
+  });
+
+  describe('stats and the current session', () => {
+    const advance = (ms: number) =>
+      act(async () => {
+        jest.advanceTimersByTime(ms);
+      });
+
+    it('shows how many Books were read this year', async () => {
+      await openDashboard({ finishedBooks: 3 });
+
+      expect(await screen.findByText('Read in 2026')).toBeTruthy();
+      expect(screen.getByText('3')).toBeTruthy();
+    });
+
+    it('invites the Reader to set goals when there are none', async () => {
+      await openDashboard();
+
+      expect(await screen.findByText('Set a reading goal for 2026')).toBeTruthy();
+      expect(screen.getByText('Set a daily reading goal')).toBeTruthy();
+      expect(screen.queryByText('Reading now')).toBeNull();
+    });
+
+    it('shows the Book being read, with its time ticking, and its goal progress moving with it', async () => {
+      const storage = await openDashboard({ dailyGoal: 30 });
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719', new Date(Date.now() - 10 * 60 * 1000));
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+
+      expect(await screen.findByText('Reading now')).toBeTruthy();
+      expect(screen.getByText('Dune')).toBeTruthy();
+      expect(screen.getByText('10:00')).toBeTruthy();
+      expect(screen.getByText('10 of 30 minutes today')).toBeTruthy();
+
+      await advance(5_000);
+      expect(screen.getByText('10:05')).toBeTruthy();
+
+      await advance(55_000);
+      expect(screen.getByText('11:00')).toBeTruthy();
+      expect(screen.getByText('11 of 30 minutes today')).toBeTruthy();
+    });
+
+    it('keeps the Open book button reachable for screen readers', async () => {
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719');
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+
+      const button = await screen.findByRole('button', { name: 'Open book' });
+
+      expect(button).toBeTruthy();
+    });
+
+    it('stops ticking while another tab is showing, and catches up when it is back', async () => {
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719');
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+      expect(await screen.findByText('0:00')).toBeTruthy();
+      await advance(3_000);
+      expect(screen.getByText('0:03')).toBeTruthy();
+
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await advance(5_000);
+      expect(screen.getByText('0:03', { includeHiddenElements: true })).toBeTruthy(); // frozen while hidden
+
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+      expect(await screen.findByText('0:08')).toBeTruthy(); // caught up
+    });
+
+    it('looks at the clock again when the app returns from the background', async () => {
+      let onChange: (state: string) => void = () => {};
+      jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, handler) => {
+        onChange = handler as (state: string) => void;
+        return { remove: () => {} };
+      });
+      jest.setSystemTime(new Date('2026-03-11T22:30:00Z')); // 23:30 in Brussels
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.addManual(
+        '9780441172719',
+        new Date('2026-03-11T22:00:00Z'),
+        new Date('2026-03-11T22:20:00Z'),
+      );
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+      expect(await screen.findAllByText('20 min')).toHaveLength(3);
+
+      jest.setSystemTime(new Date('2026-03-12T08:00:00Z')); // timers were paused; the day has changed
+      await act(async () => onChange('active'));
+
+      expect(screen.getAllByText('0 min')).toHaveLength(1);
+    });
+
+    it('opens the Book being read', async () => {
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719');
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+
+      await fireEvent.press(await screen.findByText('Open book'));
+
+      expect(await screen.findByText('Your progress')).toBeTruthy();
+    });
+
+    it('rolls over at midnight without anything being reloaded', async () => {
+      jest.setSystemTime(new Date('2026-03-11T22:30:00Z')); // 23:30 in Brussels
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.addManual(
+        '9780441172719',
+        new Date('2026-03-11T22:00:00Z'),
+        new Date('2026-03-11T22:20:00Z'),
+      );
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+      expect(await screen.findAllByText('20 min')).toHaveLength(3);
+
+      await advance(61 * 60 * 1000); // past midnight
+
+      expect(screen.getAllByText('0 min')).toHaveLength(1); // today starts again
+      expect(screen.getAllByText('20 min')).toHaveLength(2); // this week and this year carry on
     });
   });
 });
