@@ -1,0 +1,136 @@
+{
+  "ISBN:9780261102354": {
+    "url": "http://openlibrary.org/books/OL51693824M/The_Fellowship_of_the_Ring",
+    "key": "/books/OL51693824M",
+    "title": "The Fellowship of the Ring",
+    "subtitle": "Being the first part of The Lord of the Rings",
+    "authors": [
+      {
+        "url": "http://openlibrary.org/authors/OL26320A/J.R.R._Tolkien",
+        "name": "J.R.R. Tolkien"
+      }
+    ],
+    "number_of_pages": 545,
+    "pagination": "xix, 535 pages",
+    "publish_date": "1999",
+    "subjects": [
+      {
+        "name": "Elves",
+        "url": "https://openlibrary.org/subjects/elves"
+      },
+      {
+        "name": "Dwarves",
+        "url": "https://openlibrary.org/subjects/dwarves"
+      },
+      {
+        "name": "evil",
+        "url": "https://openlibrary.org/subjects/evil"
+      },
+      {
+        "name": "fear",
+        "url": "https://openlibrary.org/subjects/fear"
+      },
+      {
+        "name": "Fantasy",
+        "url": "https://openlibrary.org/subjects/fantasy"
+      }
+    ],
+    "subject_places": [
+      {
+        "name": "Middle Earth",
+        "url": "https://openlibrary.org/subjects/place:middle_earth"
+      },
+      {
+        "name": "Mordor",
+        "url": "https://openlibrary.org/subjects/place:mordor"
+      },
+      {
+        "name": "Tierra Media",
+        "url": "https://openlibrary.org/subjects/place:tierra_media"
+      },
+      {
+        "name": "Bree",
+        "url": "https://openlibrary.org/subjects/place:bree"
+      },
+      {
+        "name": "Gondor",
+        "url": "https://openlibrary.org/subjects/place:gondor"
+      }
+    ],
+    "subject_people": [
+      {
+        "name": "Bilbo Baggins",
+        "url": "https://openlibrary.org/subjects/person:bilbo_baggins"
+      },
+      {
+        "name": "Gandalf the Wizard",
+        "url": "https://openlibrary.org/subjects/person:gandalf_the_wizard"
+      },
+      {
+        "name": "Frodo Baggins",
+        "url": "https://openlibrary.org/subjects/person:frodo_baggins"
+      },
+      {
+        "name": "Samwise Gamgee",
+        "url": "https://openlibrary.org/subjects/person:samwise_gamgee"
+      },
+      {
+        "name": "Aragorn (Strider)",
+        "url": "https://openlibrary.org/subjects/person:aragorn_(strider)"
+      },
+      {
+        "name": "Legolas",
+        "url": "https://openlibrary.org/subjects/person:legolas"
+      },
+      {
+        "name": "Gimli",
+        "url": "https://openlibrary.org/subjects/person:gimli"
+      },
+      {
+        "name": "Elrond",
+        "url": "https://openlibrary.org/subjects/person:elrond"
+      },
+      {
+        "name": "Sauron",
+        "url": "https://openlibrary.org/subjects/person:sauron"
+      },
+      {
+        "name": "Black Riders",
+        "url": "https://openlibrary.org/subjects/person:black_riders"
+      },
+      {
+        "name": "Tom Bombadil",
+        "url": "https://openlibrary.org/subjects/person:tom_bombadil"
+      },
+      {
+        "name": "Boromir",
+        "url": "https://openlibrary.org/subjects/person:boromir"
+      },
+      {
+        "name": "Merry Brandybuck",
+        "url": "https://openlibrary.org/subjects/person:merry_brandybuck"
+      },
+      {
+        "name": "Celeborn",
+        "url": "https://openlibrary.org/subjects/person:celeborn"
+      },
+      {
+        "name": "Galadriel",
+        "url": "https://openlibrary.org/subjects/person:galadriel"
+      },
+      {
+        "name": "Elendil",
+        "url": "https://openlibrary.org/subjects/person:elendil"
+      },
+      {
+        "name": "Gandalf",
+        "url": "https://openlibrary.org/subjects/person:gandalf"
+      }
+    ],
+    "cover": {
+      "small": "https://covers.openlibrary.org/b/id/14625638-S.jpg",
+      "medium": "https://covers.openlibrary.org/b/id/14625638-M.jpg",
+      "large": "https://covers.openlibrary.org/b/id/14625638-L.jpg"
+    }
+  }
+}
