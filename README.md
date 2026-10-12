@@ -16,11 +16,12 @@ Done:
 - Your Library lists the books you added, filterable by shelf and searchable by title or author
 - Record the page you are on; the shelf follows (first page → *Reading*, last page → *Read*), with a progress percentage
 - Time your reading with a start/stop reading session that survives closing the app (one at a time)
+- Add a reading session you forgot to time, delete sessions, and see your reading time today / this week / this year on the Dashboard
 - Move a book between the shelves *Want to read*, *Reading* and *Read*, or remove it from your Library
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):
-- Reading time totals, reviews and ratings
+- Reviews and ratings
 - Reading goals (books per year, minutes per day) and achievements
 - Transparent on-device recommendations ("because you read …")
 - Export and import your data as a single file, to move between phones

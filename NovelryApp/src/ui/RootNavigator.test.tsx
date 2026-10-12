@@ -13,7 +13,7 @@ describe('RootNavigator', () => {
 
     for (const [tab, message] of [
       ['Explore', 'Search for a book by title or author.'],
-      ['Dashboard', 'Your reading goals and stats.'],
+      ['Dashboard', 'Reading time'],
       ['Settings', 'Privacy, support and your data.'],
     ]) {
       await fireEvent.press(screen.getAllByText(tab)[0]);

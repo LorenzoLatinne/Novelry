@@ -191,4 +191,65 @@ describe('BookDetailScreen', () => {
       expect(screen.queryByText('Start reading session')).toBeNull();
     });
   });
+
+  describe('manual Reading Sessions', () => {
+    async function openWithBook() {
+      const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+      const storage = await renderDetail(fetch);
+      await fireEvent.press(await screen.findByText('Add to Library'));
+      await screen.findByText('Add a session you forgot to time');
+      return storage;
+    }
+
+    it('adds a session the Reader forgot to time, and lists it', async () => {
+      const storage = await openWithBook();
+
+      await fireEvent.changeText(screen.getByLabelText('Minutes read'), '30');
+      await fireEvent.press(screen.getByText('Add'));
+
+      expect(await screen.findByText(/· 30:00$/)).toBeTruthy();
+      const [session] = await storage.sessions.list('9780261102354');
+      expect(Date.parse(session.endedAt!) - Date.parse(session.startedAt)).toBe(30 * 60 * 1000);
+    });
+
+    it('can record the session for yesterday', async () => {
+      const storage = await openWithBook();
+
+      await fireEvent.changeText(screen.getByLabelText('Minutes read'), '20');
+      await fireEvent.press(screen.getByRole('radio', { name: 'Yesterday' }));
+      await fireEvent.press(screen.getByText('Add'));
+
+      await screen.findByText(/· 20:00$/);
+      const [session] = await storage.sessions.list('9780261102354');
+      expect(Date.now() - Date.parse(session.endedAt!)).toBeGreaterThan(23 * 60 * 60 * 1000);
+    });
+
+    it('asks for a sensible number of minutes', async () => {
+      const storage = await openWithBook();
+
+      for (const text of ['', 'abc', '0', '1441']) {
+        await fireEvent.changeText(screen.getByLabelText('Minutes read'), text);
+        await fireEvent.press(screen.getByText('Add'));
+        expect(await screen.findByText('Enter how many minutes you read, between 1 and 1440.')).toBeTruthy();
+      }
+      expect(await storage.sessions.list('9780261102354')).toEqual([]);
+    });
+
+    it('deletes a session only after the Reader confirms', async () => {
+      const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+      const storage = await openWithBook();
+      await fireEvent.changeText(screen.getByLabelText('Minutes read'), '15');
+      await fireEvent.press(screen.getByText('Add'));
+      await screen.findByText(/· 15:00$/);
+
+      await fireEvent.press(screen.getByText('Delete'));
+      expect(await storage.sessions.list('9780261102354')).toHaveLength(1);
+
+      const confirm = alert.mock.calls[0][2]!.find((b) => b.text === 'Delete')!;
+      await act(async () => confirm.onPress!());
+
+      expect(await storage.sessions.list('9780261102354')).toEqual([]);
+      expect(screen.queryByText(/· 15:00$/)).toBeNull();
+    });
+  });
 });

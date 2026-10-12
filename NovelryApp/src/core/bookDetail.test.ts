@@ -66,4 +66,22 @@ describe('Book detail', () => {
 
     expect((await loadBookDetail({ storage, catalog }, ISBN))?.runningSession).toMatchObject({ isbn: ISBN });
   });
+
+  it('includes the Book’s reading sessions', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    await storage.sessions.addManual(
+      ISBN,
+      new Date('2026-03-01T20:00:00Z'),
+      new Date('2026-03-01T20:30:00Z'),
+      new Date('2026-03-02T09:00:00Z'),
+    );
+
+    const detail = await loadBookDetail({ storage, catalog }, ISBN);
+
+    expect(detail?.sessions).toHaveLength(1);
+    expect(detail?.sessions[0]).toMatchObject({ endedAt: '2026-03-01T20:30:00.000Z' });
+  });
 });

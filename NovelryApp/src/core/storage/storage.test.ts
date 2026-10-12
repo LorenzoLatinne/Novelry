@@ -1,6 +1,6 @@
 import type { Book } from '../catalog/book';
 import { MIGRATIONS } from './migrations';
-import { InvalidPageError, SessionAlreadyRunningError, openStorage } from './storage';
+import { InvalidPageError, InvalidSessionError, SessionAlreadyRunningError, openStorage } from './storage';
 import { createTestDatabase } from './testDatabase';
 
 const fellowship: Book = {
@@ -507,6 +507,77 @@ describe('storage', () => {
       const { storage } = await libraryWith();
 
       await expect(storage.sessions.start(fellowship.isbn, T0)).rejects.toThrow(/not in your Library/);
+    });
+
+    it('adds a session the Reader forgot to time', async () => {
+      const { storage } = await libraryWith(fellowship);
+      const now = new Date('2026-03-02T09:00:00.000Z');
+
+      const added = await storage.sessions.addManual(fellowship.isbn, T0, T1, now);
+
+      expect(added).toMatchObject({
+        isbn: fellowship.isbn,
+        startedAt: '2026-03-01T20:00:00.000Z',
+        endedAt: '2026-03-01T20:25:00.000Z',
+      });
+      expect(await storage.sessions.list(fellowship.isbn)).toEqual([added]);
+      expect(await storage.sessions.running()).toBeNull();
+    });
+
+    it('can be added while another session is running', async () => {
+      const { storage } = await libraryWith(fellowship, hobbit);
+      await storage.sessions.start(hobbit.isbn, T1);
+
+      await expect(
+        storage.sessions.addManual(fellowship.isbn, T0, T1, new Date('2026-03-02T09:00:00.000Z')),
+      ).resolves.toBeDefined();
+      expect((await storage.sessions.running())?.isbn).toBe(hobbit.isbn);
+    });
+
+    it('rejects a manual session that does not end after it starts', async () => {
+      const { storage } = await libraryWith(fellowship);
+      const now = new Date('2026-03-02T09:00:00.000Z');
+
+      await expect(storage.sessions.addManual(fellowship.isbn, T1, T0, now)).rejects.toBeInstanceOf(InvalidSessionError);
+      await expect(storage.sessions.addManual(fellowship.isbn, T0, T0, now)).rejects.toBeInstanceOf(InvalidSessionError);
+      expect(await storage.sessions.list(fellowship.isbn)).toEqual([]);
+    });
+
+    it('rejects a manual session that ends in the future', async () => {
+      const { storage } = await libraryWith(fellowship);
+
+      await expect(
+        storage.sessions.addManual(fellowship.isbn, T0, T1, new Date('2026-03-01T20:10:00.000Z')),
+      ).rejects.toThrow(/in the future/);
+    });
+
+    it('only adds manual sessions for Books in the Library', async () => {
+      const { storage } = await libraryWith();
+
+      await expect(
+        storage.sessions.addManual(fellowship.isbn, T0, T1, new Date('2026-03-02T09:00:00.000Z')),
+      ).rejects.toThrow(/not in your Library/);
+    });
+
+    it('deletes a session, and deleting a missing one is fine', async () => {
+      const { storage } = await libraryWith(fellowship);
+      const added = await storage.sessions.addManual(fellowship.isbn, T0, T1, new Date('2026-03-02T09:00:00.000Z'));
+
+      await storage.sessions.remove(added.id);
+      await storage.sessions.remove(added.id);
+
+      expect(await storage.sessions.list(fellowship.isbn)).toEqual([]);
+    });
+
+    it('lists every session across Books, oldest first, for totals', async () => {
+      const { storage } = await libraryWith(fellowship, hobbit);
+      const now = new Date('2026-03-02T09:00:00.000Z');
+      await storage.sessions.addManual(hobbit.isbn, T1, new Date('2026-03-01T21:00:00.000Z'), now);
+      await storage.sessions.addManual(fellowship.isbn, T0, T1, now);
+
+      const all = await storage.sessions.all();
+
+      expect(all.map((s) => s.isbn)).toEqual([fellowship.isbn, hobbit.isbn]);
     });
 
     it('keeps a Book’s sessions when the Book is removed from the Library', async () => {

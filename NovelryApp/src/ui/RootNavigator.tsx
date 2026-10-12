@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppServicesProvider, type AppServices } from './AppServices';
 import { BookDetailScreen } from './screens/BookDetailScreen';
+import { DashboardScreen } from './screens/DashboardScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
@@ -30,9 +31,6 @@ const theme = {
   },
 };
 
-const DashboardScreen = () => (
-  <PlaceholderScreen title="Dashboard" message="Your reading goals and stats." />
-);
 const SettingsScreen = () => (
   <PlaceholderScreen title="Settings" message="Privacy, support and your data." />
 );

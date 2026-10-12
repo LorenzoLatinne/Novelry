@@ -8,6 +8,8 @@ export type BookDetail = {
   entry: LibraryEntry | null;
   /** The reading session that is running right now, for any Book, or null. */
   runningSession: ReadingSession | null;
+  /** This Book's reading sessions, newest first. */
+  sessions: ReadingSession[];
 };
 
 /**
@@ -18,11 +20,12 @@ export async function loadBookDetail(
   deps: { storage: Storage; catalog: BookCatalog },
   isbn: string,
 ): Promise<BookDetail | null> {
-  const [saved, entry, runningSession] = await Promise.all([
+  const [saved, entry, runningSession, sessions] = await Promise.all([
     deps.storage.books.get(isbn),
     deps.storage.library.find(isbn),
     deps.storage.sessions.running(),
+    deps.storage.sessions.list(isbn),
   ]);
   const book = saved ?? (await deps.catalog.getBookByIsbn(isbn));
-  return book ? { book, entry, runningSession } : null;
+  return book ? { book, entry, runningSession, sessions } : null;
 }
