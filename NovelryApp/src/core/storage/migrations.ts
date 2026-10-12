@@ -79,4 +79,9 @@ export const MIGRATIONS: Migration[] = [
       CREATE TABLE goals (kind TEXT PRIMARY KEY NOT NULL, target INTEGER NOT NULL CHECK (target >= 1));
     `,
   },
+  {
+    version: 7,
+    // Achievements stay earned once earned, even if the history behind them is corrected later (ADR-0004).
+    sql: `CREATE TABLE earned_achievements (id TEXT PRIMARY KEY NOT NULL, earned_at TEXT NOT NULL);`,
+  },
 ];

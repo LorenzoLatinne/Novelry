@@ -11,7 +11,7 @@ export type ReadingTime = {
 };
 
 /** Seconds of the period [from, to) during which at least one session was running. Overlaps count once. */
-function secondsRead(sessions: ReadingSession[], from: number, to: number, now: number): number {
+export function secondsRead(sessions: ReadingSession[], from: number, to: number, now: number): number {
   const intervals = sessions
     .map((session) => [
       Math.max(Date.parse(session.startedAt), from),

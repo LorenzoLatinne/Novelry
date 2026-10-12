@@ -980,4 +980,44 @@ describe('storage', () => {
       await expect(storage.goals.removeYearlyBooks()).resolves.toBeUndefined();
     });
   });
+
+  describe('earned Achievements', () => {
+    const T0 = new Date('2026-03-02T11:00:00.000Z');
+    const T1 = new Date('2026-03-09T11:00:00.000Z');
+
+    it('has none to begin with', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      expect(await storage.achievements.all()).toEqual([]);
+    });
+
+    it('records Achievements as earned, keeping the first date', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await storage.achievements.recordEarned(['first-book', 'first-hour'], T0);
+      await storage.achievements.recordEarned(['first-book', 'five-books'], T1);
+
+      expect(await storage.achievements.all()).toEqual([
+        { id: 'first-book', earnedAt: '2026-03-02T11:00:00.000Z' },
+        { id: 'first-hour', earnedAt: '2026-03-02T11:00:00.000Z' },
+        { id: 'five-books', earnedAt: '2026-03-09T11:00:00.000Z' },
+      ]);
+    });
+
+    it('does nothing for an empty list', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.achievements.recordEarned([], T0)).resolves.toBeUndefined();
+    });
+
+    it('keeps Achievements when a Book is removed from the Library', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      await storage.achievements.recordEarned(['first-book'], T0);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.achievements.all()).toHaveLength(1);
+    });
+  });
 });

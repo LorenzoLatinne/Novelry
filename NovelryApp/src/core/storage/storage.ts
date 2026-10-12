@@ -121,6 +121,16 @@ export interface Goals {
   removeDailyMinutes(): Promise<void>;
 }
 
+/** An Achievement the Reader has earned, and when it was first noticed to be earned. */
+export type EarnedAchievement = { id: string; earnedAt: string };
+
+export interface EarnedAchievements {
+  /** Every earned Achievement, oldest first. Earning is permanent. */
+  all(): Promise<EarnedAchievement[]>;
+  /** Records Achievements as earned. One that is already recorded keeps its first date. */
+  recordEarned(ids: string[], at?: Date): Promise<void>;
+}
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
@@ -167,6 +177,7 @@ export interface Storage {
   sessions: ReadingSessions;
   reviews: Reviews;
   goals: Goals;
+  achievements: EarnedAchievements;
 }
 
 type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string; favorite: number };
@@ -561,6 +572,22 @@ export async function openStorage(
           [isbn],
         );
         return rows.map(toSession);
+      },
+    },
+    achievements: {
+      async all() {
+        const rows = await database.getAll<{ id: string; earned_at: string }>(
+          'SELECT id, earned_at FROM earned_achievements ORDER BY earned_at, id',
+        );
+        return rows.map((row) => ({ id: row.id, earnedAt: row.earned_at }));
+      },
+      async recordEarned(ids, at = new Date()) {
+        for (const id of ids) {
+          await database.run('INSERT OR IGNORE INTO earned_achievements (id, earned_at) VALUES (?, ?)', [
+            id,
+            at.toISOString(),
+          ]);
+        }
       },
     },
     goals: {
