@@ -6,11 +6,13 @@ import { BookDetailScreen } from './screens/BookDetailScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
+import { ScanScreen } from './screens/ScanScreen';
 import { colors } from './theme';
 
 export type RootStackParamList = {
   Tabs: undefined;
   BookDetail: { isbn: string };
+  Scan: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -57,6 +59,7 @@ export function RootNavigator({ services }: { services: AppServices }) {
         <Stack.Navigator>
           <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
           <Stack.Screen name="BookDetail" component={BookDetailRoute} options={{ title: 'Book' }} />
+          <Stack.Screen name="Scan" component={ScanScreen} options={{ title: 'Scan a book' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </AppServicesProvider>
