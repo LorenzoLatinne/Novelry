@@ -146,16 +146,25 @@ describe('storage', () => {
     });
 
     it('does not duplicate or reset a Book that is already in the Library', async () => {
-      const database = createTestDatabase();
-      const storage = await openStorage(database);
+      const storage = await openStorage(createTestDatabase());
       await storage.library.add(fellowship);
-      await database.run("UPDATE library_entries SET shelf = 'reading', current_page = 80");
+      await storage.library.moveToShelf(fellowship.isbn, 'reading');
 
       await storage.library.add(fellowship);
 
       const entries = await storage.library.list();
       expect(entries).toHaveLength(1);
-      expect(entries[0]).toMatchObject({ shelf: 'reading', currentPage: 80 });
+      expect(entries[0]).toMatchObject({ shelf: 'reading' });
+    });
+
+    it('still works when moveToShelf is passed around on its own', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      const { moveToShelf } = storage.library;
+
+      await moveToShelf(fellowship.isbn, 'read');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ shelf: 'read' });
     });
 
     it('remembers the Book on the device so it can be shown without internet', async () => {
@@ -212,6 +221,54 @@ describe('storage', () => {
         ['9780000000002', null],
         ['9780261102354', 'The Fellowship of the Ring'],
       ]);
+    });
+
+    it('moves a Book to another Shelf, and remembers it', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'reading');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ shelf: 'reading' });
+    });
+
+    it('refuses to move a Book that is not in the Library', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.library.moveToShelf('9780000000002', 'read')).rejects.toThrow(
+        /not in your Library/,
+      );
+    });
+
+    it('removes a Book from the Library but keeps its details on the device', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.library.find(fellowship.isbn)).toBeNull();
+      expect(await storage.library.list()).toEqual([]);
+      expect(await storage.books.get(fellowship.isbn)).toEqual(fellowship);
+    });
+
+    it('treats removing a Book that is not in the Library as done', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.library.remove('9780000000002')).resolves.toBeUndefined();
+    });
+
+    it('starts a re-added Book afresh on Want to read', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read');
+      await storage.library.remove(fellowship.isbn);
+
+      await storage.library.add(fellowship);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        shelf: 'want-to-read',
+        currentPage: 0,
+      });
     });
 
     it('finds the Library Entry for a Book, or none', async () => {

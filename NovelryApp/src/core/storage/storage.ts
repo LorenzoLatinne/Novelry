@@ -18,6 +18,10 @@ export interface Library {
   /** Every Library Entry with its Book, oldest first. */
   listWithBooks(): Promise<LibraryEntryWithBook[]>;
   find(isbn: string): Promise<LibraryEntry | null>;
+  /** Moves a Book already in the Library to another Shelf; throws if it is not in the Library. */
+  moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
+  /** Takes a Book out of the Library. Its saved details stay on the device. Removing an absent Book is a no-op. */
+  remove(isbn: string): Promise<void>;
   /** Puts a Book on the Want to read Shelf. A Book already in the Library is left untouched. */
   add(book: Book): Promise<void>;
 }
@@ -105,6 +109,14 @@ export async function openStorage(
 
   const ENTRY_COLUMNS = 'isbn, shelf, current_page, added_at';
 
+  async function findEntry(isbn: string): Promise<LibraryEntry | null> {
+    const [row] = await database.getAll<EntryRow>(
+      `SELECT ${ENTRY_COLUMNS} FROM library_entries WHERE isbn = ?`,
+      [isbn],
+    );
+    return row ? toEntry(row) : null;
+  }
+
   return {
     schemaVersion: () => readVersion(database),
     library: {
@@ -140,13 +152,16 @@ export async function openStorage(
                 }),
         }));
       },
-      async find(isbn) {
-        const [row] = await database.getAll<EntryRow>(
-          `SELECT ${ENTRY_COLUMNS} FROM library_entries WHERE isbn = ?`,
-          [isbn],
-        );
-        return row ? toEntry(row) : null;
+      async moveToShelf(isbn, shelf) {
+        if (!(await findEntry(isbn))) {
+          throw new Error(`The book ${isbn} is not in your Library.`);
+        }
+        await database.run('UPDATE library_entries SET shelf = ? WHERE isbn = ?', [shelf, isbn]);
       },
+      async remove(isbn) {
+        await database.run('DELETE FROM library_entries WHERE isbn = ?', [isbn]);
+      },
+      find: findEntry,
       async add(book) {
         await database.exec('BEGIN');
         try {
