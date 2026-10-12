@@ -17,6 +17,7 @@ import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
+import { ReviewSection } from './ReviewSection';
 import { colors } from '../theme';
 
 type SessionDay = 'today' | 'yesterday';
@@ -111,7 +112,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     );
   }
 
-  const { book, entry, runningSession, sessions } = state.detail;
+  const { book, entry, runningSession, sessions, review } = state.detail;
   const percent = entry ? progressPercent(entry.currentPage, book.pageCount) : null;
   const facts = [
     book.pageCount ? `${book.pageCount} pages` : null,
@@ -257,6 +258,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
             onDayChange={setSessionDay}
             onAdd={addSessionManually}
             onDelete={confirmDeleteSession}
+          />
+          <ReviewSection
+            storage={storage}
+            isbn={book.isbn}
+            review={review}
+            onChanged={() => load({ quiet: true })}
           />
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {

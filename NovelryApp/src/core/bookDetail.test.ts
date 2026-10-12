@@ -84,4 +84,19 @@ describe('Book detail', () => {
     expect(detail?.sessions).toHaveLength(1);
     expect(detail?.sessions[0]).toMatchObject({ endedAt: '2026-03-01T20:30:00.000Z' });
   });
+
+  it('includes the Reader’s Review of the Book', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.review).toBeNull();
+
+    await storage.reviews.save(ISBN, { rating: 4, comment: 'Gripping.' });
+
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.review).toMatchObject({
+      rating: 4,
+      comment: 'Gripping.',
+    });
+  });
 });

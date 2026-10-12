@@ -21,6 +21,35 @@ export class InvalidPageError extends Error {
   }
 }
 
+/** The Reader's own Rating (1-5) and comment on a Book. Private: it never leaves the device. */
+export type Review = {
+  isbn: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const MAX_REVIEW_COMMENT_LENGTH = 500;
+
+/** The Rating or comment given cannot be saved. */
+export class InvalidReviewError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidReviewError';
+  }
+}
+
+export interface Reviews {
+  /** Writes or replaces a Book's one Review. The Book must be in the Library. */
+  save(isbn: string, review: { rating: number; comment: string }, at?: Date): Promise<void>;
+  get(isbn: string): Promise<Review | null>;
+  /** Every Review, most recently changed first. */
+  all(): Promise<Review[]>;
+  /** Deletes a Book's Review. Deleting one that does not exist is a no-op. */
+  remove(isbn: string): Promise<void>;
+}
+
 /** A timed stretch of reading on one Book. A session with no end time is still running. */
 export type ReadingSession = {
   id: number;
@@ -97,9 +126,22 @@ export interface Storage {
   library: Library;
   books: BookCache;
   sessions: ReadingSessions;
+  reviews: Reviews;
 }
 
 type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string };
+
+type ReviewRow = { isbn: string; rating: number; comment: string; created_at: string; updated_at: string };
+
+function toReview(row: ReviewRow): Review {
+  return {
+    isbn: row.isbn,
+    rating: row.rating,
+    comment: row.comment,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 type SessionRow = { id: number; isbn: string; started_at: string; ended_at: string | null };
 
@@ -407,6 +449,41 @@ export async function openStorage(
           [isbn],
         );
         return rows.map(toSession);
+      },
+    },
+    reviews: {
+      async save(isbn, { rating, comment }, at = new Date()) {
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          throw new InvalidReviewError('The Rating must be a whole number from 1 to 5.');
+        }
+        const text = comment.trim();
+        if (text.length > MAX_REVIEW_COMMENT_LENGTH) {
+          throw new InvalidReviewError(`The comment can be at most ${MAX_REVIEW_COMMENT_LENGTH} characters.`);
+        }
+        await requireEntry(isbn);
+        const now = at.toISOString();
+        await database.run(
+          `INSERT INTO reviews (isbn, rating, comment, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(isbn) DO UPDATE SET rating = excluded.rating, comment = excluded.comment,
+                                           updated_at = excluded.updated_at`,
+          [isbn, rating, text, now, now],
+        );
+      },
+      async get(isbn) {
+        const [row] = await database.getAll<ReviewRow>(
+          'SELECT isbn, rating, comment, created_at, updated_at FROM reviews WHERE isbn = ?',
+          [isbn],
+        );
+        return row ? toReview(row) : null;
+      },
+      async all() {
+        const rows = await database.getAll<ReviewRow>(
+          'SELECT isbn, rating, comment, created_at, updated_at FROM reviews ORDER BY updated_at DESC, isbn',
+        );
+        return rows.map(toReview);
+      },
+      async remove(isbn) {
+        await database.run('DELETE FROM reviews WHERE isbn = ?', [isbn]);
       },
     },
     books: {
