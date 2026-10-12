@@ -12,6 +12,11 @@ describe('progressPercent', () => {
     expect(progressPercent(50, 0)).toBeNull();
   });
 
+  it('only reaches 100 on the last page', () => {
+    expect(progressPercent(544, 545)).toBe(99);
+    expect(progressPercent(545, 545)).toBe(100);
+  });
+
   it('never goes past 100', () => {
     expect(progressPercent(700, 545)).toBe(100);
   });

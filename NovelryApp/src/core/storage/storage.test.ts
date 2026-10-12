@@ -393,6 +393,15 @@ describe('storage', () => {
       });
     });
 
+    it('starts a finished Book over when it is moved back to Reading', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.moveToShelf(fellowship.isbn, 'read');
+
+      await storage.library.moveToShelf(fellowship.isbn, 'reading');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ currentPage: 0, shelf: 'reading' });
+    });
+
     it('keeps the page when a Book is moved to Reading', async () => {
       const storage = await libraryWith(fellowship);
       await storage.library.recordPage(fellowship.isbn, 200);

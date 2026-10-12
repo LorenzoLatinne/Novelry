@@ -191,7 +191,11 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
                 <Text style={styles.buttonText}>Save</Text>
               </Pressable>
             </View>
-            {percent !== null ? <Text style={styles.facts}>{percent}% read</Text> : null}
+            {percent !== null ? (
+              <Text accessibilityLabel={`${percent} percent read`} style={styles.facts}>
+                {percent}% read
+              </Text>
+            ) : null}
           </View>
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {

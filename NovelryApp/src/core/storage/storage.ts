@@ -26,7 +26,11 @@ export interface Library {
   /** Every Library Entry with its Book, oldest first. */
   listWithBooks(): Promise<LibraryEntryWithBook[]>;
   find(isbn: string): Promise<LibraryEntry | null>;
-  /** Moves a Book already in the Library to another Shelf; throws if it is not in the Library. */
+  /**
+   * Moves a Book already in the Library to another Shelf; throws if it is not in the Library.
+   * The page follows: Read puts it at the last page (when the length is known), Want to read
+   * resets it to 0, and Reading keeps it, except that a finished Book starts again from 0.
+   */
   moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
   /**
    * Records how far the Reader has got. The Shelf follows: the first page moves Want to read to
@@ -198,6 +202,8 @@ export async function openStorage(
           page = pageCount;
         } else if (shelf === 'want-to-read') {
           page = 0;
+        } else if (shelf === 'reading' && entry.shelf === 'read') {
+          page = 0; // reading it again
         }
         await writeProgress(isbn, shelf, page);
       },
