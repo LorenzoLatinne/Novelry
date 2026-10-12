@@ -155,4 +155,40 @@ describe('BookDetailScreen', () => {
     }
     expect(await storage.library.find('9780261102354')).toMatchObject({ currentPage: 0 });
   });
+
+  describe('Reading Sessions', () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('starts a session, shows the time running, and stops it', async () => {
+      jest.useFakeTimers({ now: new Date('2026-03-01T20:00:00.000Z') });
+      const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+      const storage = await renderDetail(fetch);
+      await fireEvent.press(await screen.findByText('Add to Library'));
+
+      await fireEvent.press(await screen.findByText('Start reading session'));
+      expect(await screen.findByText('0:00')).toBeTruthy();
+      expect(await storage.sessions.running()).toMatchObject({ isbn: '9780261102354' });
+
+      await act(async () => {
+        jest.advanceTimersByTime(65_000);
+      });
+      expect(screen.getByText('1:05')).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Stop session'));
+      expect(await screen.findByText('Start reading session')).toBeTruthy();
+      expect(await storage.sessions.running()).toBeNull();
+      expect(await storage.sessions.list('9780261102354')).toHaveLength(1);
+    });
+
+    it('does not offer a second session while another Book is being read', async () => {
+      const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+      const storage = await renderDetail(fetch);
+      await storage.library.add({ isbn: '9780000000002', title: 'Other', authors: [], genres: [] });
+      await storage.sessions.start('9780000000002');
+      await fireEvent.press(await screen.findByText('Add to Library'));
+
+      expect(await screen.findByText(/Another reading session is running/)).toBeTruthy();
+      expect(screen.queryByText('Start reading session')).toBeNull();
+    });
+  });
 });

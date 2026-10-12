@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
-import { InvalidPageError } from '../../core/storage/storage';
+import { formatDuration } from '../../core/duration';
+import { InvalidPageError, type ReadingSession } from '../../core/storage/storage';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
@@ -104,14 +105,14 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     );
   }
 
-  const { book, entry } = state.detail;
+  const { book, entry, runningSession } = state.detail;
   const percent = entry ? progressPercent(entry.currentPage, book.pageCount) : null;
   const facts = [
     book.pageCount ? `${book.pageCount} pages` : null,
     book.publishedYear ? `First published ${book.publishedYear}` : null,
   ].filter(Boolean);
 
-  async function change(action: () => Promise<void>, failure: string) {
+  async function change(action: () => Promise<unknown>, failure: string) {
     setActionError(null);
     try {
       await action();
@@ -138,6 +139,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     }
     return change(() => storage.library.recordPage(book.isbn, Number(text)), 'Could not save your page. Please try again.');
   }
+
+  const startSession = () =>
+    change(() => storage.sessions.start(book.isbn), 'Could not start the session. Please try again.');
+
+  const stopSession = () =>
+    change(() => storage.sessions.stop(), 'Could not stop the session. Please try again.');
 
   function confirmRemove() {
     Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
@@ -197,6 +204,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
               </Text>
             ) : null}
           </View>
+          <SessionPanel
+            isbn={book.isbn}
+            running={runningSession}
+            onStart={startSession}
+            onStop={stopSession}
+          />
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {
               const selected = entry.shelf === shelf;
@@ -238,6 +251,63 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   );
 }
 
+function SessionPanel({
+  isbn,
+  running,
+  onStart,
+  onStop,
+}: {
+  isbn: string;
+  running: ReadingSession | null;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  const thisBook = running?.isbn === isbn;
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!thisBook) {
+      return;
+    }
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [thisBook]);
+
+  const elapsed = running ? formatDuration((now - Date.parse(running.startedAt)) / 1000) : '';
+
+  return (
+    <View style={styles.progress}>
+      <Text accessibilityRole="header" style={styles.progressTitle}>
+        Reading session
+      </Text>
+      {thisBook ? (
+        <>
+          <Text accessibilityRole="timer" style={styles.timer}>
+            {elapsed}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={onStop} style={styles.button}>
+            <Text style={styles.buttonText}>Stop session</Text>
+          </Pressable>
+        </>
+      ) : (
+        <OtherOrNoSession busy={running !== null} onStart={onStart} />
+      )}
+    </View>
+  );
+}
+
+function OtherOrNoSession({ busy, onStart }: { busy: boolean; onStart: () => void }) {
+  if (busy) {
+    return <Text style={styles.facts}>Another reading session is running. Stop it before starting a new one.</Text>;
+  }
+  return (
+    <Pressable accessibilityRole="button" onPress={onStart} style={styles.button}>
+      <Text style={styles.buttonText}>Start reading session</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.background },
   content: { padding: 24, alignItems: 'center', backgroundColor: colors.background },
@@ -247,6 +317,7 @@ const styles = StyleSheet.create({
   facts: { fontSize: 14, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   description: { fontSize: 16, color: colors.text, marginTop: 16, lineHeight: 22 },
   shelf: { fontSize: 16, fontWeight: '600', color: colors.primary, marginTop: 24 },
+  timer: { fontSize: 36, fontWeight: '700', color: colors.primary, marginTop: 8, fontVariant: ['tabular-nums'] },
   progress: { alignItems: 'center', marginTop: 16 },
   progressTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   progressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
