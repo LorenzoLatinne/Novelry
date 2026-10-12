@@ -1,6 +1,6 @@
 import type { SqlDatabase } from './database';
 import { MIGRATIONS, type Migration } from './migrations';
-import type { Shelf } from '../shelf';
+import { isShelf, type Shelf } from '../shelf';
 
 export type LibraryEntry = {
   isbn: string;
@@ -27,6 +27,14 @@ export async function openStorage(
   database: SqlDatabase,
   migrations: Migration[] = MIGRATIONS,
 ): Promise<Storage> {
+  migrations.forEach((migration, index) => {
+    if (migration.version !== index + 1) {
+      throw new Error(
+        `Migrations must be consecutive from 1 (found version ${migration.version} at position ${index + 1}).`,
+      );
+    }
+  });
+
   const current = await readVersion(database);
   const latest = migrations.reduce((max, m) => Math.max(max, m.version), 0);
   if (current > latest) {
@@ -53,16 +61,21 @@ export async function openStorage(
       async list() {
         const rows = await database.getAll<{
           isbn: string;
-          shelf: Shelf;
+          shelf: string;
           current_page: number;
           added_at: string;
         }>('SELECT isbn, shelf, current_page, added_at FROM library_entries ORDER BY added_at');
-        return rows.map((r) => ({
-          isbn: r.isbn,
-          shelf: r.shelf,
-          currentPage: r.current_page,
-          addedAt: r.added_at,
-        }));
+        return rows.map((r) => {
+          if (!isShelf(r.shelf)) {
+            throw new Error(`Unknown Shelf "${r.shelf}" stored for ${r.isbn}.`);
+          }
+          return {
+            isbn: r.isbn,
+            shelf: r.shelf,
+            currentPage: r.current_page,
+            addedAt: r.added_at,
+          };
+        });
       },
     },
   };

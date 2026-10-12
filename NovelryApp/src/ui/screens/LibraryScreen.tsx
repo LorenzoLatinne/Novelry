@@ -5,10 +5,22 @@ import { colors } from '../theme';
 
 export function LibraryScreen({ storage }: { storage: Storage }) {
   const [entries, setEntries] = useState<LibraryEntry[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    storage.library.list().then(setEntries);
+    storage.library
+      .list()
+      .then(setEntries)
+      .catch(() => setFailed(true));
   }, [storage]);
+
+  if (failed) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>Your Library could not be loaded.</Text>
+      </View>
+    );
+  }
 
   if (entries === null) {
     return <View style={styles.container} />;
