@@ -1,6 +1,6 @@
 import type { Book } from '../catalog/book';
 import { MIGRATIONS } from './migrations';
-import { openStorage } from './storage';
+import { InvalidPageError, openStorage } from './storage';
 import { createTestDatabase } from './testDatabase';
 
 const fellowship: Book = {
@@ -346,6 +346,7 @@ describe('storage', () => {
     it('rejects pages past the end of the Book, below zero, or not whole numbers', async () => {
       const storage = await libraryWith(fellowship);
 
+      await expect(storage.library.recordPage(fellowship.isbn, 546)).rejects.toBeInstanceOf(InvalidPageError);
       await expect(storage.library.recordPage(fellowship.isbn, 546)).rejects.toThrow(/between 0 and 545/);
       await expect(storage.library.recordPage(fellowship.isbn, -1)).rejects.toThrow(/between 0 and 545/);
       await expect(storage.library.recordPage(fellowship.isbn, 12.5)).rejects.toThrow(/whole number/);

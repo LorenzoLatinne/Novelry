@@ -13,6 +13,14 @@ export type LibraryEntry = {
 /** A Library Entry with its Book; the Book is null if its details were never saved. */
 export type LibraryEntryWithBook = { entry: LibraryEntry; book: Book | null };
 
+/** The page the Reader entered cannot be recorded (not a whole number, below zero or past the last page). */
+export class InvalidPageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidPageError';
+  }
+}
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
@@ -130,6 +138,14 @@ export async function openStorage(
     return entry;
   }
 
+  async function writeProgress(isbn: string, shelf: Shelf, page: number): Promise<void> {
+    await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
+      shelf,
+      page,
+      isbn,
+    ]);
+  }
+
   /** The Book's length in pages, or null if unknown (or the Book's details were never saved). */
   async function pageCountOf(isbn: string): Promise<number | null> {
     const [row] = await database.getAll<{ page_count: number | null }>(
@@ -176,39 +192,38 @@ export async function openStorage(
       },
       async moveToShelf(isbn, shelf) {
         const entry = await requireEntry(isbn);
-        const total = await pageCountOf(isbn);
-        const page = shelf === 'read' && total ? total : shelf === 'want-to-read' ? 0 : entry.currentPage;
-        await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
-          shelf,
-          page,
-          isbn,
-        ]);
+        const pageCount = await pageCountOf(isbn);
+        let page = entry.currentPage;
+        if (shelf === 'read' && pageCount) {
+          page = pageCount;
+        } else if (shelf === 'want-to-read') {
+          page = 0;
+        }
+        await writeProgress(isbn, shelf, page);
       },
       async recordPage(isbn, page) {
         if (!Number.isInteger(page)) {
-          throw new Error('The page must be a whole number.');
+          throw new InvalidPageError('The page must be a whole number.');
         }
         const entry = await requireEntry(isbn);
-        const total = await pageCountOf(isbn);
-        if (page < 0 || (total !== null && page > total)) {
-          throw new Error(
-            total === null ? 'The page cannot be below 0.' : `The page must be between 0 and ${total}.`,
+        const pageCount = await pageCountOf(isbn);
+        if (page < 0 || (pageCount !== null && page > pageCount)) {
+          throw new InvalidPageError(
+            pageCount === null
+              ? 'The page cannot be below 0.'
+              : `The page must be between 0 and ${pageCount}.`,
           );
         }
 
         let shelf = entry.shelf;
-        if (total !== null && page === total) {
+        if (pageCount !== null && page === pageCount) {
           shelf = 'read';
-        } else if (total !== null && shelf === 'read') {
+        } else if (pageCount !== null && shelf === 'read') {
           shelf = 'reading';
         } else if (page > 0 && shelf === 'want-to-read') {
           shelf = 'reading';
         }
-        await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
-          shelf,
-          page,
-          isbn,
-        ]);
+        await writeProgress(isbn, shelf, page);
       },
       async remove(isbn) {
         await database.run('DELETE FROM library_entries WHERE isbn = ?', [isbn]);

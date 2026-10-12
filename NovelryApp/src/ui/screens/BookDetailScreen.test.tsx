@@ -138,7 +138,21 @@ describe('BookDetailScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Current page'), '9999');
     await fireEvent.press(screen.getByText('Save'));
 
-    expect(await screen.findByText('Enter a page between 0 and 545.')).toBeTruthy();
+    expect(await screen.findByText('The page must be between 0 and 545.')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ currentPage: 0 });
+  });
+
+  it('asks for a whole number when the page is not digits', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('Your progress');
+
+    for (const text of ['', 'abc', '1e3', '12.5']) {
+      await fireEvent.changeText(screen.getByLabelText('Current page'), text);
+      await fireEvent.press(screen.getByText('Save'));
+      expect(await screen.findByText('Enter the page you are on, as a whole number.')).toBeTruthy();
+    }
     expect(await storage.library.find('9780261102354')).toMatchObject({ currentPage: 0 });
   });
 });

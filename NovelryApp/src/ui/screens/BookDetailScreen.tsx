@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
+import { InvalidPageError } from '../../core/storage/storage';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
@@ -104,6 +105,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   }
 
   const { book, entry } = state.detail;
+  const percent = entry ? progressPercent(entry.currentPage, book.pageCount) : null;
   const facts = [
     book.pageCount ? `${book.pageCount} pages` : null,
     book.publishedYear ? `First published ${book.publishedYear}` : null,
@@ -114,8 +116,9 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     try {
       await action();
       await load({ quiet: true });
-    } catch {
-      setActionError(failure);
+    } catch (error) {
+      // Entering a bad page is the Reader's to fix; anything else is a failure to apologise for.
+      setActionError(error instanceof InvalidPageError ? error.message : failure);
     }
   }
 
@@ -128,15 +131,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       : change(() => storage.library.moveToShelf(book.isbn, shelf), 'Could not move this book. Please try again.');
 
   function savePage() {
-    const page = Number(pageText.trim());
-    if (pageText.trim() === '' || Number.isNaN(page)) {
-      setActionError('Enter the page you are on, as a number.');
+    const text = pageText.trim();
+    if (!/^\d+$/.test(text)) {
+      setActionError('Enter the page you are on, as a whole number.');
       return Promise.resolve();
     }
-    return change(
-      () => storage.library.recordPage(book.isbn, page),
-      book.pageCount ? `Enter a page between 0 and ${book.pageCount}.` : 'Enter a page of 0 or more.',
-    );
+    return change(() => storage.library.recordPage(book.isbn, Number(text)), 'Could not save your page. Please try again.');
   }
 
   function confirmRemove() {
@@ -191,9 +191,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
                 <Text style={styles.buttonText}>Save</Text>
               </Pressable>
             </View>
-            {progressPercent(entry.currentPage, book.pageCount) !== null ? (
-              <Text style={styles.facts}>{progressPercent(entry.currentPage, book.pageCount)}% read</Text>
-            ) : null}
+            {percent !== null ? <Text style={styles.facts}>{percent}% read</Text> : null}
           </View>
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {
