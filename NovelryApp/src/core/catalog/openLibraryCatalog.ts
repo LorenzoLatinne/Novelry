@@ -2,6 +2,8 @@ import type { Book } from './book';
 
 const BASE_URL = 'https://openlibrary.org';
 const MAX_GENRES = 5;
+/** Open Library asks API clients to identify themselves. */
+const USER_AGENT = 'Novelry/0.1 (+https://github.com/LorenzoLatinne/Novelry)';
 
 type FetchResponse = { ok: boolean; status: number; json(): Promise<unknown> };
 type FetchLike = (url: string, init?: { headers?: Record<string, string> }) => Promise<FetchResponse>;
@@ -29,8 +31,8 @@ export class CatalogOfflineError extends Error {
 
 /** Open Library answered, but with an error. */
 export class CatalogUnavailableError extends Error {
-  constructor(status: number) {
-    super(`Open Library is not available right now (status ${status}).`);
+  constructor(detail: string) {
+    super(`Open Library is not available right now (${detail}).`);
     this.name = 'CatalogUnavailableError';
   }
 }
@@ -40,12 +42,12 @@ function normalizeIsbn(input: string): string {
 }
 
 export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCatalog {
-  const found = new Map<string, Book>();
+  const booksByIsbn = new Map<string, Book>();
 
   return {
     async getBookByIsbn(input) {
       const isbn = normalizeIsbn(input);
-      const cached = found.get(isbn);
+      const cached = booksByIsbn.get(isbn);
       if (cached) {
         return cached;
       }
@@ -53,31 +55,37 @@ export function createOpenLibraryCatalog(options: { fetch: FetchLike }): BookCat
       const url = `${BASE_URL}/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
       let response: FetchResponse;
       try {
-        response = await options.fetch(url);
+        response = await options.fetch(url, { headers: { 'User-Agent': USER_AGENT } });
       } catch {
         throw new CatalogOfflineError();
       }
       if (!response.ok) {
-        throw new CatalogUnavailableError(response.status);
+        throw new CatalogUnavailableError(`status ${response.status}`);
       }
 
-      const payload = (await response.json()) as Record<string, OpenLibraryBook>;
+      let payload: Record<string, OpenLibraryBook>;
+      try {
+        payload = (await response.json()) as Record<string, OpenLibraryBook>;
+      } catch {
+        throw new CatalogUnavailableError('unreadable response');
+      }
       const raw = payload[`ISBN:${isbn}`];
-      if (!raw?.title) {
+      const title = raw?.title;
+      if (!title) {
         return null;
       }
-      const book = toBook(isbn, raw);
-      found.set(isbn, book);
+      const book = toBook(isbn, title, raw);
+      booksByIsbn.set(isbn, book);
       return book;
     },
   };
 }
 
-function toBook(isbn: string, raw: OpenLibraryBook): Book {
+function toBook(isbn: string, title: string, raw: OpenLibraryBook): Book {
   const year = raw.publish_date?.match(/\d{4}/)?.[0];
   return {
     isbn,
-    title: raw.title ?? '',
+    title,
     authors: (raw.authors ?? []).map((a) => a.name),
     genres: (raw.subjects ?? []).map((s) => s.name).slice(0, MAX_GENRES),
     ...(raw.number_of_pages ? { pageCount: raw.number_of_pages } : {}),

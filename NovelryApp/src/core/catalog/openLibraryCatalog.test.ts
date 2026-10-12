@@ -71,4 +71,30 @@ describe('Open Library catalog: lookup by ISBN', () => {
 
     expect(book?.isbn).toBe('9780261102354');
   });
+
+  it('asks Open Library for the right ISBN and identifies the app', async () => {
+    const fetch = respondWith(fellowship);
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    await catalog.getBookByIsbn('9780261102354');
+
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toContain('bibkeys=ISBN:9780261102354');
+    expect(init.headers['User-Agent']).toMatch(/^Novelry\//);
+  });
+
+  it('reports the catalog as unavailable when the response is not valid JSON', async () => {
+    const fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      },
+    })) as unknown as jest.Mock;
+    const catalog = createOpenLibraryCatalog({ fetch });
+
+    await expect(catalog.getBookByIsbn('9780261102354')).rejects.toBeInstanceOf(
+      CatalogUnavailableError,
+    );
+  });
 });
