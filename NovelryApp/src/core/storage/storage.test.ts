@@ -1,6 +1,6 @@
 import type { Book } from '../catalog/book';
 import { MIGRATIONS } from './migrations';
-import { InvalidPageError, openStorage } from './storage';
+import { InvalidPageError, SessionAlreadyRunningError, openStorage } from './storage';
 import { createTestDatabase } from './testDatabase';
 
 const fellowship: Book = {
@@ -409,6 +409,101 @@ describe('storage', () => {
       await storage.library.moveToShelf(fellowship.isbn, 'reading');
 
       expect(await storage.library.find(fellowship.isbn)).toMatchObject({ currentPage: 200, shelf: 'reading' });
+    });
+  });
+
+  describe('Reading Sessions', () => {
+    const T0 = new Date('2026-03-01T20:00:00.000Z');
+    const T1 = new Date('2026-03-01T20:25:00.000Z');
+
+    async function libraryWith(...books: Book[]) {
+      const database = createTestDatabase();
+      const storage = await openStorage(database);
+      for (const book of books) {
+        await storage.library.add(book);
+      }
+      return { database, storage };
+    }
+    const hobbit: Book = { isbn: '9780261103344', title: 'The Hobbit', authors: ['J.R.R. Tolkien'], genres: [] };
+
+    it('starts a session on a Book in the Library, and it is running', async () => {
+      const { storage } = await libraryWith(fellowship);
+
+      await storage.sessions.start(fellowship.isbn, T0);
+
+      expect(await storage.sessions.running()).toMatchObject({
+        isbn: fellowship.isbn,
+        startedAt: '2026-03-01T20:00:00.000Z',
+        endedAt: null,
+      });
+    });
+
+    it('is still running after the app restarts', async () => {
+      const { database, storage } = await libraryWith(fellowship);
+      await storage.sessions.start(fellowship.isbn, T0);
+
+      const afterRestart = await openStorage(database);
+
+      expect(await afterRestart.sessions.running()).toMatchObject({ isbn: fellowship.isbn, endedAt: null });
+    });
+
+    it('allows only one running session at a time', async () => {
+      const { storage } = await libraryWith(fellowship, hobbit);
+      await storage.sessions.start(fellowship.isbn, T0);
+
+      await expect(storage.sessions.start(hobbit.isbn, T1)).rejects.toBeInstanceOf(SessionAlreadyRunningError);
+      expect((await storage.sessions.running())?.isbn).toBe(fellowship.isbn);
+    });
+
+    it('stops the running session and keeps it in the Book’s history', async () => {
+      const { storage } = await libraryWith(fellowship);
+      await storage.sessions.start(fellowship.isbn, T0);
+
+      const stopped = await storage.sessions.stop(T1);
+
+      expect(stopped).toMatchObject({ startedAt: '2026-03-01T20:00:00.000Z', endedAt: '2026-03-01T20:25:00.000Z' });
+      expect(await storage.sessions.running()).toBeNull();
+      expect(await storage.sessions.list(fellowship.isbn)).toEqual([stopped]);
+    });
+
+    it('lets the next session start once the previous one is stopped', async () => {
+      const { storage } = await libraryWith(fellowship, hobbit);
+      await storage.sessions.start(fellowship.isbn, T0);
+      await storage.sessions.stop(T1);
+
+      await storage.sessions.start(hobbit.isbn, T1);
+
+      expect((await storage.sessions.running())?.isbn).toBe(hobbit.isbn);
+    });
+
+    it('has nothing to stop when no session is running', async () => {
+      const { storage } = await libraryWith(fellowship);
+
+      await expect(storage.sessions.stop(T1)).rejects.toThrow(/No reading session is running/);
+    });
+
+    it('cannot end before it started', async () => {
+      const { storage } = await libraryWith(fellowship);
+      await storage.sessions.start(fellowship.isbn, T1);
+
+      await expect(storage.sessions.stop(T0)).rejects.toThrow(/before it started/);
+      expect(await storage.sessions.running()).not.toBeNull();
+    });
+
+    it('only starts sessions for Books in the Library', async () => {
+      const { storage } = await libraryWith();
+
+      await expect(storage.sessions.start(fellowship.isbn, T0)).rejects.toThrow(/not in your Library/);
+    });
+
+    it('keeps a Book’s sessions when the Book is removed from the Library', async () => {
+      const { storage } = await libraryWith(fellowship);
+      await storage.sessions.start(fellowship.isbn, T0);
+      await storage.sessions.stop(T1);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.sessions.list(fellowship.isbn)).toHaveLength(1);
     });
   });
 });

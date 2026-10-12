@@ -54,4 +54,16 @@ describe('Book detail', () => {
       CatalogOfflineError,
     );
   });
+
+  it('reports the reading session that is running, if any', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.runningSession).toBeNull();
+
+    await storage.sessions.start(ISBN);
+
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.runningSession).toMatchObject({ isbn: ISBN });
+  });
 });

@@ -31,4 +31,18 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE reading_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        isbn TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT
+      );
+      CREATE INDEX reading_sessions_by_book ON reading_sessions (isbn, started_at);
+      -- At most one session may be running (no end time) at any moment.
+      CREATE UNIQUE INDEX one_running_session ON reading_sessions ((1)) WHERE ended_at IS NULL;
+    `,
+  },
 ];

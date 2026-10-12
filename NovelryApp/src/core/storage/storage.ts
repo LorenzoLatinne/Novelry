@@ -21,6 +21,33 @@ export class InvalidPageError extends Error {
   }
 }
 
+/** A timed stretch of reading on one Book. A session with no end time is still running. */
+export type ReadingSession = {
+  id: number;
+  isbn: string;
+  startedAt: string;
+  endedAt: string | null;
+};
+
+/** The Reader tried to start a session while another one is already running. */
+export class SessionAlreadyRunningError extends Error {
+  constructor(readonly runningIsbn: string) {
+    super('Another reading session is already running. Stop it first.');
+    this.name = 'SessionAlreadyRunningError';
+  }
+}
+
+export interface ReadingSessions {
+  /** Starts a session on a Book in the Library. Only one session can run at a time. */
+  start(isbn: string, at?: Date): Promise<ReadingSession>;
+  /** Ends the running session. Throws if none is running or if it would end before it started. */
+  stop(at?: Date): Promise<ReadingSession>;
+  /** The running session, if any. It survives the app being closed. */
+  running(): Promise<ReadingSession | null>;
+  /** A Book's finished and running sessions, newest first. */
+  list(isbn: string): Promise<ReadingSession[]>;
+}
+
 export interface Library {
   list(): Promise<LibraryEntry[]>;
   /** Every Library Entry with its Book, oldest first. */
@@ -52,9 +79,16 @@ export interface Storage {
   schemaVersion(): Promise<number>;
   library: Library;
   books: BookCache;
+  sessions: ReadingSessions;
 }
 
 type EntryRow = { isbn: string; shelf: string; current_page: number; added_at: string };
+
+type SessionRow = { id: number; isbn: string; started_at: string; ended_at: string | null };
+
+function toSession(row: SessionRow): ReadingSession {
+  return { id: row.id, isbn: row.isbn, startedAt: row.started_at, endedAt: row.ended_at };
+}
 
 type BookRow = {
   isbn: string;
@@ -157,6 +191,13 @@ export async function openStorage(
       [isbn],
     );
     return row?.page_count ?? null;
+  }
+
+  async function runningSession(): Promise<ReadingSession | null> {
+    const [row] = await database.getAll<SessionRow>(
+      'SELECT id, isbn, started_at, ended_at FROM reading_sessions WHERE ended_at IS NULL',
+    );
+    return row ? toSession(row) : null;
   }
 
   return {
@@ -271,6 +312,42 @@ export async function openStorage(
           await database.exec('ROLLBACK');
           throw error;
         }
+      },
+    },
+    sessions: {
+      running: runningSession,
+      async start(isbn, at = new Date()) {
+        await requireEntry(isbn);
+        const running = await runningSession();
+        if (running) {
+          throw new SessionAlreadyRunningError(running.isbn);
+        }
+        await database.run('INSERT INTO reading_sessions (isbn, started_at) VALUES (?, ?)', [
+          isbn,
+          at.toISOString(),
+        ]);
+        return (await runningSession())!;
+      },
+      async stop(at = new Date()) {
+        const running = await runningSession();
+        if (!running) {
+          throw new Error('No reading session is running.');
+        }
+        if (at.toISOString() < running.startedAt) {
+          throw new Error('A reading session cannot end before it started.');
+        }
+        await database.run('UPDATE reading_sessions SET ended_at = ? WHERE id = ?', [
+          at.toISOString(),
+          running.id,
+        ]);
+        return { ...running, endedAt: at.toISOString() };
+      },
+      async list(isbn) {
+        const rows = await database.getAll<SessionRow>(
+          'SELECT id, isbn, started_at, ended_at FROM reading_sessions WHERE isbn = ? ORDER BY started_at DESC, id DESC',
+          [isbn],
+        );
+        return rows.map(toSession);
       },
     },
     books: {
