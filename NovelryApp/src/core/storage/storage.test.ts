@@ -1,6 +1,12 @@
 import type { Book } from '../catalog/book';
 import { MIGRATIONS } from './migrations';
-import { InvalidPageError, InvalidSessionError, SessionAlreadyRunningError, openStorage } from './storage';
+import {
+  InvalidPageError,
+  InvalidReviewError,
+  InvalidSessionError,
+  SessionAlreadyRunningError,
+  openStorage,
+} from './storage';
 import { createTestDatabase } from './testDatabase';
 
 const fellowship: Book = {
@@ -610,6 +616,117 @@ describe('storage', () => {
       await storage.library.remove(fellowship.isbn);
 
       expect(await storage.sessions.list(fellowship.isbn)).toHaveLength(1);
+    });
+  });
+
+  describe('Reviews', () => {
+    const T0 = new Date('2026-04-01T10:00:00.000Z');
+    const T1 = new Date('2026-04-02T18:30:00.000Z');
+
+    async function libraryWith(book: Book) {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(book);
+      return storage;
+    }
+
+    it('saves a Rating and a comment for a Book', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.reviews.save(fellowship.isbn, { rating: 4, comment: 'Slow start, great ending.' }, T0);
+
+      expect(await storage.reviews.get(fellowship.isbn)).toEqual({
+        isbn: fellowship.isbn,
+        rating: 4,
+        comment: 'Slow start, great ending.',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      });
+    });
+
+    it('has no Review for a Book that was not reviewed', async () => {
+      const storage = await libraryWith(fellowship);
+
+      expect(await storage.reviews.get(fellowship.isbn)).toBeNull();
+    });
+
+    it('edits the one Review of a Book, keeping when it was first written', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.reviews.save(fellowship.isbn, { rating: 3, comment: 'Okay.' }, T0);
+
+      await storage.reviews.save(fellowship.isbn, { rating: 5, comment: 'A classic.' }, T1);
+
+      expect(await storage.reviews.get(fellowship.isbn)).toMatchObject({
+        rating: 5,
+        comment: 'A classic.',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-02T18:30:00.000Z',
+      });
+    });
+
+    it('allows a Rating without a comment, and trims the comment', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.reviews.save(fellowship.isbn, { rating: 2, comment: '' }, T0);
+      expect(await storage.reviews.get(fellowship.isbn)).toMatchObject({ rating: 2, comment: '' });
+
+      await storage.reviews.save(fellowship.isbn, { rating: 2, comment: '  spaced out  ' }, T0);
+      expect((await storage.reviews.get(fellowship.isbn))?.comment).toBe('spaced out');
+    });
+
+    it('accepts only whole Ratings from 1 to 5', async () => {
+      const storage = await libraryWith(fellowship);
+
+      for (const rating of [0, 6, 3.5, Number.NaN, -1]) {
+        await expect(storage.reviews.save(fellowship.isbn, { rating, comment: '' }, T0)).rejects.toBeInstanceOf(
+          InvalidReviewError,
+        );
+      }
+      expect(await storage.reviews.get(fellowship.isbn)).toBeNull();
+    });
+
+    it('accepts a comment of 500 characters but not 501', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await expect(storage.reviews.save(fellowship.isbn, { rating: 3, comment: 'x'.repeat(500) }, T0)).resolves.toBeUndefined();
+      await expect(storage.reviews.save(fellowship.isbn, { rating: 3, comment: 'x'.repeat(501) }, T0)).rejects.toThrow(
+        /500 characters/,
+      );
+    });
+
+    it('only reviews Books in the Library', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await expect(storage.reviews.save('9780000000002', { rating: 3, comment: '' }, T0)).rejects.toThrow(
+        /not in your Library/,
+      );
+    });
+
+    it('deletes a Review, and deleting a missing one is fine', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.reviews.save(fellowship.isbn, { rating: 3, comment: 'Fine.' }, T0);
+
+      await storage.reviews.remove(fellowship.isbn);
+      await storage.reviews.remove(fellowship.isbn);
+
+      expect(await storage.reviews.get(fellowship.isbn)).toBeNull();
+    });
+
+    it('keeps a Book’s Review when the Book is removed from the Library', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.reviews.save(fellowship.isbn, { rating: 5, comment: 'Loved it.' }, T0);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.reviews.get(fellowship.isbn)).toMatchObject({ rating: 5, comment: 'Loved it.' });
+    });
+
+    it('lists every Review, newest first', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.add({ isbn: '9780000000002', title: 'Other', authors: [], genres: [] });
+      await storage.reviews.save(fellowship.isbn, { rating: 4, comment: '' }, T0);
+      await storage.reviews.save('9780000000002', { rating: 2, comment: '' }, T1);
+
+      expect((await storage.reviews.all()).map((r) => r.isbn)).toEqual(['9780000000002', fellowship.isbn]);
     });
   });
 });

@@ -84,4 +84,34 @@ describe('Book detail', () => {
     expect(detail?.sessions).toHaveLength(1);
     expect(detail?.sessions[0]).toMatchObject({ endedAt: '2026-03-01T20:30:00.000Z' });
   });
+
+  it('includes the Reader’s Review of the Book', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.review).toBeNull();
+
+    await storage.reviews.save(ISBN, { rating: 4, comment: 'Gripping.' });
+
+    expect((await loadBookDetail({ storage, catalog }, ISBN))?.review).toMatchObject({
+      rating: 4,
+      comment: 'Gripping.',
+    });
+  });
+
+  it('shows an earlier Review again when the Book is added back to the Library', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    await storage.reviews.save(ISBN, { rating: 5, comment: 'Loved it.' });
+    await storage.library.remove(ISBN);
+    await storage.library.add(book);
+
+    const detail = await loadBookDetail({ storage, catalog }, ISBN);
+
+    expect(detail?.review).toMatchObject({ rating: 5, comment: 'Loved it.' });
+    expect(detail?.entry).toMatchObject({ shelf: 'want-to-read' });
+  });
 });

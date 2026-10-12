@@ -12,11 +12,17 @@ import {
 } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
 import { formatDuration } from '../../core/duration';
-import { InvalidPageError, InvalidSessionError, type ReadingSession } from '../../core/storage/storage';
+import {
+  InvalidPageError,
+  InvalidReviewError,
+  InvalidSessionError,
+  type ReadingSession,
+} from '../../core/storage/storage';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
+import { ReviewSection } from './ReviewSection';
 import { colors } from '../theme';
 
 type SessionDay = 'today' | 'yesterday';
@@ -111,7 +117,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     );
   }
 
-  const { book, entry, runningSession, sessions } = state.detail;
+  const { book, entry, runningSession, sessions, review } = state.detail;
   const percent = entry ? progressPercent(entry.currentPage, book.pageCount) : null;
   const facts = [
     book.pageCount ? `${book.pageCount} pages` : null,
@@ -257,6 +263,29 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
             onDayChange={setSessionDay}
             onAdd={addSessionManually}
             onDelete={confirmDeleteSession}
+          />
+          <ReviewSection
+            review={review}
+            onSave={async (rating, comment) => {
+              try {
+                await storage.reviews.save(book.isbn, { rating, comment });
+                await load({ quiet: true });
+                return 'Review saved.';
+              } catch (error) {
+                return error instanceof InvalidReviewError
+                  ? error.message
+                  : 'Could not save your review. Please try again.';
+              }
+            }}
+            onDelete={async () => {
+              try {
+                await storage.reviews.remove(book.isbn);
+                await load({ quiet: true });
+                return null;
+              } catch {
+                return 'Could not delete your review. Please try again.';
+              }
+            }}
           />
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {

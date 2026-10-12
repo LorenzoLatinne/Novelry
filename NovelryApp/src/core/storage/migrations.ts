@@ -45,4 +45,16 @@ export const MIGRATIONS: Migration[] = [
       CREATE UNIQUE INDEX one_running_session ON reading_sessions ((1)) WHERE ended_at IS NULL;
     `,
   },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE reviews (
+        isbn TEXT PRIMARY KEY NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
