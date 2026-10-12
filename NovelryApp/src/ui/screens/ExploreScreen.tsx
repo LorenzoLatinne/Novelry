@@ -87,6 +87,7 @@ export function ExploreScreen() {
         state={state}
         onOpen={(isbn) => navigation.navigate('BookDetail', { isbn })}
         onRetry={() => setAttempt((n) => n + 1)}
+        onPickGenre={setQuery}
       />
     </View>
   );
@@ -96,17 +97,19 @@ function Results({
   state,
   onOpen,
   onRetry,
+  onPickGenre,
 }: {
   state: SearchState;
   onOpen: (isbn: string) => void;
   onRetry: () => void;
+  onPickGenre: (genre: string) => void;
 }) {
   switch (state.kind) {
     case 'idle':
       return (
         <ScrollView keyboardShouldPersistTaps="handled">
           <Message text="Search for a book by title or author." />
-          <RecommendationsSection onOpen={onOpen} />
+          <RecommendationsSection onOpen={onOpen} onPickGenre={onPickGenre} />
         </ScrollView>
       );
     case 'searching':

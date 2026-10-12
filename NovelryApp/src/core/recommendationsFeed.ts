@@ -1,5 +1,4 @@
-import type { Book } from './catalog/book';
-import type { BookCatalog } from './catalog/openLibraryCatalog';
+import type { BookCatalog, SearchResult } from './catalog/openLibraryCatalog';
 import {
   loadExcludedIsbns,
   loadTasteProfile,
@@ -36,11 +35,11 @@ export async function loadRecommendations(
 
   const lookups = await Promise.allSettled(genres.map((genre) => deps.catalog.searchBySubject(genre)));
   const answered = lookups.filter(
-    (lookup): lookup is PromiseFulfilledResult<{ books: Book[]; total: number }> => lookup.status === 'fulfilled',
+    (lookup): lookup is PromiseFulfilledResult<SearchResult> => lookup.status === 'fulfilled',
   );
   if (answered.length === 0) {
-    const failure = lookups.find((lookup): lookup is PromiseRejectedResult => lookup.status === 'rejected');
-    throw failure?.reason;
+    const failure = lookups.find((lookup): lookup is PromiseRejectedResult => lookup.status === 'rejected')!;
+    throw failure.reason; // every lookup failed, and there was at least one: the Reader cannot get recommendations now
   }
 
   const [inLibrary, dismissed] = await Promise.all([loadExcludedIsbns(deps.storage), deps.storage.dismissals.all()]);

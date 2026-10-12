@@ -43,6 +43,31 @@ describe('RecommendationsSection', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('offers some genres to start from when there is nothing to go on, which fill the search box', async () => {
+    await openExplore({ fetch: fakeOpenLibrary([]) });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fantasy' }));
+
+    expect(screen.getByLabelText('Search books').props.value).toBe('Fantasy');
+  });
+
+  it('is open about Open Library being asked for the genres the Reader likes', async () => {
+    await openExplore({ taste: true, fetch: fakeOpenLibrary([doc('Hyperion', '9780553283686')]) });
+
+    expect(await screen.findByText(/looks up the genres you like on Open Library/)).toBeTruthy();
+  });
+
+  it('does not flash a spinner when the tab is visited again', async () => {
+    await openExplore({ taste: true, fetch: fakeOpenLibrary([]) }); // taste, but nothing fits
+    await screen.findByText('Nothing new to recommend right now');
+
+    await fireEvent.press(screen.getAllByText('Library')[0]);
+    await fireEvent.press(screen.getAllByText('Explore')[0]);
+
+    expect(screen.queryByLabelText('Finding recommendations')).toBeNull();
+    expect(screen.getByText('Nothing new to recommend right now')).toBeTruthy();
+  });
+
   it('shows recommendations, each with the reason', async () => {
     await openExplore({ taste: true, fetch: fakeOpenLibrary([doc('Hyperion', '9780553283686'), doc('Neuromancer', '9780441569595')]) });
 
