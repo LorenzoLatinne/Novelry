@@ -18,13 +18,13 @@ Done:
 - Time your reading with a start/stop reading session that survives closing the app (one at a time)
 - Add a reading session you forgot to time, delete sessions, and see your reading time today / this week / this year on the Dashboard
 - Rate a book from 1 to 5 stars and write a private review (up to 500 characters); only you can see it
-- Set a yearly reading goal (books per year) and follow your progress on the Dashboard
+- Set a yearly reading goal (books per year) and a daily goal (minutes per day), and follow your progress on the Dashboard
 - Mark books as Favorites and filter your Library by them
 - Move a book between the shelves *Want to read*, *Reading* and *Read*, or remove it from your Library
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):
-- A daily reading goal (minutes per day), and achievements
+- Achievements
 - Transparent on-device recommendations ("because you read …")
 - Export and import your data as a single file, to move between phones
 

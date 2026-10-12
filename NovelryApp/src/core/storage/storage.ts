@@ -96,7 +96,10 @@ export interface ReadingSessions {
 }
 
 export const MAX_YEARLY_BOOKS_GOAL = 1000;
+export const MAX_DAILY_MINUTES_GOAL = 24 * 60;
+
 const YEARLY_BOOKS = 'yearly-books';
+const DAILY_MINUTES = 'daily-minutes';
 
 /** The goal target given cannot be saved. */
 export class InvalidGoalError extends Error {
@@ -111,6 +114,10 @@ export interface Goals {
   getYearlyBooks(): Promise<number | null>;
   setYearlyBooks(target: number): Promise<void>;
   removeYearlyBooks(): Promise<void>;
+  /** The number of minutes the Reader wants to read each day, or null if they have not set one. */
+  getDailyMinutes(): Promise<number | null>;
+  setDailyMinutes(target: number): Promise<void>;
+  removeDailyMinutes(): Promise<void>;
 }
 
 export interface Library {
@@ -320,6 +327,25 @@ export async function openStorage(
 
   const REVIEW_COLUMNS = 'isbn, rating, comment, created_at, updated_at';
   const SESSION_COLUMNS = 'id, isbn, started_at, ended_at';
+
+  async function getGoal(kind: string): Promise<number | null> {
+    const [row] = await database.getAll<{ target: number }>('SELECT target FROM goals WHERE kind = ?', [kind]);
+    return row?.target ?? null;
+  }
+
+  async function setGoal(kind: string, target: number, max: number, description: string): Promise<void> {
+    if (!Number.isInteger(target) || target < 1 || target > max) {
+      throw new InvalidGoalError(`The goal must be ${description}.`);
+    }
+    await database.run(
+      'INSERT INTO goals (kind, target) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET target = excluded.target',
+      [kind, target],
+    );
+  }
+
+  async function removeGoal(kind: string): Promise<void> {
+    await database.run('DELETE FROM goals WHERE kind = ?', [kind]);
+  }
 
   async function runningSession(): Promise<ReadingSession | null> {
     const [row] = await database.getAll<SessionRow>(
@@ -537,25 +563,14 @@ export async function openStorage(
       },
     },
     goals: {
-      async getYearlyBooks() {
-        const [row] = await database.getAll<{ target: number }>(
-          'SELECT target FROM goals WHERE kind = ?',
-          [YEARLY_BOOKS],
-        );
-        return row?.target ?? null;
-      },
-      async setYearlyBooks(target) {
-        if (!Number.isInteger(target) || target < 1 || target > MAX_YEARLY_BOOKS_GOAL) {
-          throw new InvalidGoalError(`The goal must be a whole number of books from 1 to ${MAX_YEARLY_BOOKS_GOAL}.`);
-        }
-        await database.run(
-          'INSERT INTO goals (kind, target) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET target = excluded.target',
-          [YEARLY_BOOKS, target],
-        );
-      },
-      async removeYearlyBooks() {
-        await database.run('DELETE FROM goals WHERE kind = ?', [YEARLY_BOOKS]);
-      },
+      getYearlyBooks: () => getGoal(YEARLY_BOOKS),
+      setYearlyBooks: (target) =>
+        setGoal(YEARLY_BOOKS, target, MAX_YEARLY_BOOKS_GOAL, `a whole number of books from 1 to ${MAX_YEARLY_BOOKS_GOAL}`),
+      removeYearlyBooks: () => removeGoal(YEARLY_BOOKS),
+      getDailyMinutes: () => getGoal(DAILY_MINUTES),
+      setDailyMinutes: (target) =>
+        setGoal(DAILY_MINUTES, target, MAX_DAILY_MINUTES_GOAL, `a whole number of minutes from 1 to ${MAX_DAILY_MINUTES_GOAL}`),
+      removeDailyMinutes: () => removeGoal(DAILY_MINUTES),
     },
     reviews: {
       async save(isbn, { rating, comment }, at = new Date()) {
