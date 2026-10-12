@@ -1,10 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { openStorage } from '../core/storage/storage';
+import { createTestDatabase } from '../core/storage/testDatabase';
 import { RootNavigator } from './RootNavigator';
 
 describe('RootNavigator', () => {
   it('starts on the Library tab and can open the other tabs', async () => {
-    await render(<RootNavigator />);
-    expect(screen.getByText('Your books will appear here.')).toBeTruthy();
+    const storage = await openStorage(createTestDatabase());
+    await render(<RootNavigator storage={storage} />);
+    expect(await screen.findByText('Your Library is empty')).toBeTruthy();
 
     for (const [tab, message] of [
       ['Explore', 'Search for your next book.'],

@@ -1,5 +1,7 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { Storage } from '../core/storage/storage';
+import { LibraryScreen } from './screens/LibraryScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { colors } from './theme';
 
@@ -17,9 +19,6 @@ const theme = {
   },
 };
 
-const LibraryScreen = () => (
-  <PlaceholderScreen title="Library" message="Your books will appear here." />
-);
 const ExploreScreen = () => (
   <PlaceholderScreen title="Explore" message="Search for your next book." />
 );
@@ -30,11 +29,11 @@ const SettingsScreen = () => (
   <PlaceholderScreen title="Settings" message="Privacy, support and your data." />
 );
 
-export function RootNavigator() {
+export function RootNavigator({ storage }: { storage: Storage }) {
   return (
     <NavigationContainer theme={theme}>
       <Tab.Navigator>
-        <Tab.Screen name="Library" component={LibraryScreen} />
+        <Tab.Screen name="Library">{() => <LibraryScreen storage={storage} />}</Tab.Screen>
         <Tab.Screen name="Explore" component={ExploreScreen} />
         <Tab.Screen name="Dashboard" component={DashboardScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
