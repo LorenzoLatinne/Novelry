@@ -19,6 +19,10 @@ import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
 import { colors } from '../theme';
 
+type SessionDay = 'today' | 'yesterday';
+
+const MAX_SESSION_MINUTES = 24 * 60;
+
 type State =
   | { kind: 'loading' }
   | { kind: 'not-found' }
@@ -42,7 +46,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [pageText, setPageText] = useState('');
   const [minutesText, setMinutesText] = useState('');
-  const [sessionDay, setSessionDay] = useState<'today' | 'yesterday'>('today');
+  const [sessionDay, setSessionDay] = useState<SessionDay>('today');
   const latestRequest = useRef(0);
 
   const load = useCallback(
@@ -153,11 +157,15 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   function addSessionManually() {
     const text = minutesText.trim();
     const minutes = Number(text);
-    if (!/^\d+$/.test(text) || minutes < 1 || minutes > 24 * 60) {
+    if (!/^\d+$/.test(text) || minutes < 1 || minutes > MAX_SESSION_MINUTES) {
       setActionError('Enter how many minutes you read, between 1 and 1440.');
       return Promise.resolve();
     }
-    const end = new Date(Date.now() - (sessionDay === 'yesterday' ? 24 * 60 * 60 * 1000 : 0));
+    // Yesterday means the same clock time on the previous calendar day (not 24 hours ago: clocks change).
+    const end = new Date();
+    if (sessionDay === 'yesterday') {
+      end.setDate(end.getDate() - 1);
+    }
     const start = new Date(end.getTime() - minutes * 60 * 1000);
     return change(async () => {
       await storage.sessions.addManual(book.isbn, start, end);
@@ -348,8 +356,8 @@ function SessionHistory(props: {
   sessions: ReadingSession[];
   minutesText: string;
   onMinutesChange: (text: string) => void;
-  day: 'today' | 'yesterday';
-  onDayChange: (day: 'today' | 'yesterday') => void;
+  day: SessionDay;
+  onDayChange: (day: SessionDay) => void;
   onAdd: () => void;
   onDelete: (session: ReadingSession) => void;
 }) {

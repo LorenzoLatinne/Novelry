@@ -221,7 +221,7 @@ describe('BookDetailScreen', () => {
 
       await screen.findByText(/· 20:00$/);
       const [session] = await storage.sessions.list('9780261102354');
-      expect(Date.now() - Date.parse(session.endedAt!)).toBeGreaterThan(23 * 60 * 60 * 1000);
+      expect(Date.now() - Date.parse(session.endedAt!)).toBeGreaterThan(22 * 60 * 60 * 1000);
     });
 
     it('asks for a sensible number of minutes', async () => {

@@ -569,6 +569,28 @@ describe('storage', () => {
       expect(await storage.sessions.list(fellowship.isbn)).toEqual([]);
     });
 
+    it('does not delete a session that is still running', async () => {
+      const { storage } = await libraryWith(fellowship);
+      const running = await storage.sessions.start(fellowship.isbn, T0);
+
+      await storage.sessions.remove(running.id);
+
+      expect(await storage.sessions.running()).toMatchObject({ id: running.id });
+    });
+
+    it('returns the session it added even when another is added straight after', async () => {
+      const { storage } = await libraryWith(fellowship);
+      const now = new Date('2026-03-02T09:00:00.000Z');
+
+      const [first, second] = await Promise.all([
+        storage.sessions.addManual(fellowship.isbn, T0, T1, now),
+        storage.sessions.addManual(fellowship.isbn, T1, new Date('2026-03-01T21:00:00.000Z'), now),
+      ]);
+
+      expect(first.endedAt).toBe(T1.toISOString());
+      expect(second.endedAt).toBe('2026-03-01T21:00:00.000Z');
+    });
+
     it('lists every session across Books, oldest first, for totals', async () => {
       const { storage } = await libraryWith(fellowship, hobbit);
       const now = new Date('2026-03-02T09:00:00.000Z');

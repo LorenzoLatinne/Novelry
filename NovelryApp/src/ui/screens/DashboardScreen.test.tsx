@@ -4,6 +4,8 @@ import { openStorage } from '../../core/storage/storage';
 import { createTestDatabase } from '../../core/storage/testDatabase';
 import { RootNavigator } from '../RootNavigator';
 
+jest.mock('../timeZone', () => ({ deviceTimeZone: () => 'Europe/Brussels' }));
+
 describe('DashboardScreen', () => {
   beforeEach(() => jest.useFakeTimers({ now: new Date('2026-03-11T12:00:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] }));
   afterEach(() => jest.useRealTimers());

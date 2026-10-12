@@ -75,6 +75,46 @@ describe('readingTime', () => {
     expect(readingTime(sessions, new Date('2026-03-29T12:00:00Z'), BRUSSELS).today).toBe(3 * 60 * MIN);
   });
 
+  it('counts time once when sessions overlap', () => {
+    const now = new Date('2026-03-11T14:00:00Z');
+    const sessions = [
+      session('2026-03-11T08:00:00Z', '2026-03-11T09:00:00Z'), // 08:00-09:00
+      session('2026-03-11T08:30:00Z', '2026-03-11T09:30:00Z'), // overlaps by half an hour
+      session('2026-03-11T08:45:00Z', '2026-03-11T08:50:00Z'), // entirely inside the first
+      session('2026-03-11T11:00:00Z', '2026-03-11T11:10:00Z'), // separate: 10 min
+    ];
+
+    expect(readingTime(sessions, now, BRUSSELS).today).toBe((90 + 10) * MIN);
+  });
+
+  it('does not count a running session twice when it overlaps a logged one', () => {
+    const now = new Date('2026-03-11T14:00:00Z');
+    const sessions = [
+      session('2026-03-11T13:00:00Z', null), // running: 60 min
+      session('2026-03-11T13:30:00Z', '2026-03-11T13:45:00Z'),
+    ];
+
+    expect(readingTime(sessions, now, BRUSSELS).today).toBe(60 * MIN);
+  });
+
+  it('counts the full 25 hours of the day the clocks go back in autumn', () => {
+    // Brussels, Sun 25 Oct 2026: 03:00 becomes 02:00. Local midnight to midnight = 22:00Z to 23:00Z next day.
+    const sessions = [session('2026-10-24T22:00:00Z', '2026-10-25T23:00:00Z')];
+
+    expect(readingTime(sessions, new Date('2026-10-25T12:00:00Z'), BRUSSELS).today).toBe(25 * 60 * MIN);
+  });
+
+  it('handles a week that runs over the end of the month', () => {
+    // Sat 1 Aug 2026; the week began on Monday 27 July
+    const sessions = [session('2026-07-27T10:00:00Z', '2026-07-27T11:00:00Z')];
+
+    expect(readingTime(sessions, new Date('2026-08-01T12:00:00Z'), BRUSSELS)).toEqual({
+      today: 0,
+      thisWeek: 60 * MIN,
+      thisYear: 60 * MIN,
+    });
+  });
+
   it('is zero when nothing was read', () => {
     expect(readingTime([], new Date('2026-03-11T14:00:00Z'), BRUSSELS)).toEqual({
       today: 0,

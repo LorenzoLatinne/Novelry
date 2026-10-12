@@ -9,23 +9,34 @@ export type ReadingTime = {
   thisYear: number;
 };
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hourCycle: 'h23',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 function localParts(instant: number, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hourCycle: 'h23',
-  }).formatToParts(new Date(instant));
+  const parts = formatterFor(timeZone).formatToParts(new Date(instant));
   const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
   return {
     year: get('year'),
     month: get('month'),
     day: get('day'),
-    hour: get('hour'),
+    hour: get('hour') % 24, // some engines report midnight as 24
     minute: get('minute'),
     second: get('second'),
   };
@@ -44,12 +55,24 @@ function startOfLocalDay(year: number, month: number, day: number, timeZone: str
   return asIfUtc - offsetAt(first, timeZone);
 }
 
-function overlapSeconds(sessions: ReadingSession[], from: number, to: number, now: number): number {
+/** Seconds of the period [from, to) during which at least one session was running. Overlaps count once. */
+function secondsRead(sessions: ReadingSession[], from: number, to: number, now: number): number {
+  const intervals = sessions
+    .map((session) => [
+      Math.max(Date.parse(session.startedAt), from),
+      Math.min(session.endedAt ? Date.parse(session.endedAt) : now, to),
+    ])
+    .filter(([start, end]) => end > start)
+    .sort((a, b) => a[0] - b[0]);
+
   let total = 0;
-  for (const session of sessions) {
-    const start = Date.parse(session.startedAt);
-    const end = session.endedAt ? Date.parse(session.endedAt) : now;
-    total += Math.max(0, Math.min(end, to) - Math.max(start, from));
+  let coveredUntil = -Infinity;
+  for (const [start, end] of intervals) {
+    const effectiveStart = Math.max(start, coveredUntil);
+    if (end > effectiveStart) {
+      total += end - effectiveStart;
+      coveredUntil = end;
+    }
   }
   return Math.round(total / 1000);
 }
@@ -74,8 +97,8 @@ export function readingTime(sessions: ReadingSession[], now: Date, timeZone: str
   const nextYearStart = startOfLocalDay(year + 1, 1, 1, timeZone);
 
   return {
-    today: overlapSeconds(sessions, todayStart, tomorrowStart, nowMs),
-    thisWeek: overlapSeconds(sessions, weekStart, nextWeekStart, nowMs),
-    thisYear: overlapSeconds(sessions, yearStart, nextYearStart, nowMs),
+    today: secondsRead(sessions, todayStart, tomorrowStart, nowMs),
+    thisWeek: secondsRead(sessions, weekStart, nextWeekStart, nowMs),
+    thisYear: secondsRead(sessions, yearStart, nextYearStart, nowMs),
   };
 }

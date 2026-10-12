@@ -52,7 +52,7 @@ export interface ReadingSessions {
   stop(at?: Date): Promise<ReadingSession>;
   /** Adds a finished session after the fact. It must end after it starts and not in the future. */
   addManual(isbn: string, startedAt: Date, endedAt: Date, now?: Date): Promise<ReadingSession>;
-  /** Deletes a session. Deleting one that does not exist is a no-op. */
+  /** Deletes a finished session. Deleting one that does not exist, or one still running, is a no-op. */
   remove(id: number): Promise<void>;
   /** Every session of every Book, oldest first. */
   all(): Promise<ReadingSession[]>;
@@ -384,18 +384,16 @@ export async function openStorage(
         if (endedAt.getTime() > now.getTime()) {
           throw new InvalidSessionError('A reading session cannot end in the future.');
         }
-        await database.run('INSERT INTO reading_sessions (isbn, started_at, ended_at) VALUES (?, ?, ?)', [
-          isbn,
-          startedAt.toISOString(),
-          endedAt.toISOString(),
-        ]);
         const [row] = await database.getAll<SessionRow>(
-          `SELECT ${SESSION_COLUMNS} FROM reading_sessions ORDER BY id DESC LIMIT 1`,
+          `INSERT INTO reading_sessions (isbn, started_at, ended_at) VALUES (?, ?, ?)
+           RETURNING ${SESSION_COLUMNS}`,
+          [isbn, startedAt.toISOString(), endedAt.toISOString()],
         );
         return toSession(row);
       },
       async remove(id) {
-        await database.run('DELETE FROM reading_sessions WHERE id = ?', [id]);
+        // A running session is stopped, not deleted.
+        await database.run('DELETE FROM reading_sessions WHERE id = ? AND ended_at IS NOT NULL', [id]);
       },
       async all() {
         const rows = await database.getAll<SessionRow>(
