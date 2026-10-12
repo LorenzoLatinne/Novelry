@@ -33,8 +33,8 @@ A Reader's own rating and comment on a Book, private to the Reader.
 _Avoid_: Feedback, opinion
 
 **Rating**:
-The score from 1 to 5 a Reader gives a Book within a Review.
-_Avoid_: Stars, grade
+The whole number from 1 to 5 a Reader gives a Book within a Review, shown to the Reader as stars.
+_Avoid_: Score, grade
 
 **Reading Goal**:
 A target a Reader sets for themselves: a number of Books per year or minutes read per day.

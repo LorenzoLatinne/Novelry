@@ -1,5 +1,5 @@
 import type { Book } from './catalog/book';
-import { loadTasteProfile, recommend, type TasteBook } from './recommendations';
+import { loadExcludedIsbns, loadTasteProfile, recommend, type TasteBook } from './recommendations';
 import { openStorage } from './storage/storage';
 import { createTestDatabase } from './storage/testDatabase';
 
@@ -7,9 +7,16 @@ const NOW = new Date('2026-06-01T12:00:00Z');
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY).toISOString();
 
-let n = 0;
+/** A stable fake ISBN for a title, so fixtures do not depend on the order tests run in. */
+const isbnFor = (title: string) => {
+  let hash = 7;
+  for (const char of title) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 1_000_000_000;
+  }
+  return `978${String(hash).padStart(9, '0')}1`;
+};
 const book = (title: string, authors: string[], genres: string[]): Book => ({
-  isbn: `97800000${String(n++).padStart(5, '0')}`,
+  isbn: isbnFor(title),
   title,
   authors,
   genres,
@@ -67,6 +74,21 @@ describe('recommend', () => {
     expect(result.map((r) => r.book.title)).toEqual(['Foundation']);
   });
 
+  it('treats a Book finished but rated 2 stars as a genre the Reader did not enjoy', () => {
+    const taste = [liked(emma, { rating: 2, ratedAt: daysAgo(1) }), liked(dune, { rating: 5, ratedAt: daysAgo(1) })];
+    const romance = book('Persuasion', ['Jane Austen'], ['Romance', 'Navy']);
+
+    expect(recommend(taste, [romance, foundation], options).map((r) => r.book.title)).toEqual(['Foundation']);
+  });
+
+  it('does not recommend a Book whose loved genre is cancelled out by a disliked one', () => {
+    const taste = [liked(emma, { rating: 1, ratedAt: daysAgo(1) }), liked(dune, { rating: 5, ratedAt: daysAgo(1) })];
+    const mixed = book('Space Romance', ['X'], ['Science Fiction', 'Romance']);
+    const pure = book('Hyperion', ['Dan Simmons'], ['Science Fiction']);
+
+    expect(recommend(taste, [mixed, pure], options).map((r) => r.book.title)).toEqual(['Hyperion']);
+  });
+
   it('counts recent reading more: a Book read 180 days ago counts half as much as one read today', () => {
     const recent = liked(dune, { finishedAt: daysAgo(0) });
     const old = liked(emma, { finishedAt: daysAgo(180) });
@@ -102,6 +124,23 @@ describe('recommend', () => {
     expect(result[0].reason).toBe('By Frank Herbert, whose “Dune” you rated 5 stars');
   });
 
+  it('keeps the author boost small: a genre match outranks an author-only match', () => {
+    const taste = [liked(dune, { rating: 5, ratedAt: daysAgo(1) })];
+    const authorOnly = book('Dune Messiah', ['Frank Herbert'], ['Politics']);
+    const genreOnly = book('Foundation', ['Isaac Asimov'], ['Science Fiction']);
+
+    const result = recommend(taste, [authorOnly, genreOnly], options);
+
+    expect(result.map((r) => r.book.title)).toEqual(['Foundation', 'Dune Messiah']);
+  });
+
+  it('recognises an author however the name is written', () => {
+    const taste = [liked(dune, { rating: 5, ratedAt: daysAgo(1) })];
+    const byAuthor = book('Dune Messiah', ['  frank herbert '], ['Politics']);
+
+    expect(recommend(taste, [byAuthor], options)).toHaveLength(1);
+  });
+
   it('does not boost an author the Reader rated poorly', () => {
     const taste = [liked(dune, { rating: 2, ratedAt: daysAgo(1) })];
     const byAuthor = book('Dune Messiah', ['Frank Herbert'], ['Politics']);
@@ -114,7 +153,15 @@ describe('recommend', () => {
 
     const [first] = recommend(taste, [foundation], options);
 
-    expect(first.reason).toBe('Because you liked “Dune”: Science Fiction');
+    expect(first.reason).toBe('Because you rated “Dune” 5 stars · Science Fiction');
+  });
+
+  it('only says what the Reader actually did: finished, rated, or marked a favorite', () => {
+    const [finished] = recommend([liked(dune)], [foundation], options);
+    const [favorite] = recommend([liked(dune, { finishedAt: null, favorite: true })], [foundation], options);
+
+    expect(finished.reason).toBe('Because you finished “Dune” · Science Fiction');
+    expect(favorite.reason).toBe('Because “Dune” is one of your favorites · Science Fiction');
   });
 
   it('names the strongest source Book when several point to the same genre', () => {
@@ -125,7 +172,7 @@ describe('recommend', () => {
 
     const [first] = recommend(taste, [foundation], options);
 
-    expect(first.reason).toBe('Because you liked “Neuromancer”: Science Fiction');
+    expect(first.reason).toBe('Because you rated “Neuromancer” 5 stars · Science Fiction');
   });
 
   it('ignores catch-all subjects such as "Fiction", which say nothing about taste', () => {
@@ -162,6 +209,10 @@ describe('recommend', () => {
 
     expect(first.map((r) => r.book.title)).toEqual(['Alpha', 'Beta']);
     expect(second).toEqual(first);
+  });
+
+  it('returns nothing when asked for no recommendations', () => {
+    expect(recommend([liked(dune)], [foundation], { ...options, limit: 0 })).toEqual([]);
   });
 
   it('stops at the requested number of recommendations', () => {
@@ -215,5 +266,21 @@ describe('loadTasteProfile', () => {
     await storage.library.add(dune);
 
     expect(await loadTasteProfile(storage)).toEqual([]);
+  });
+});
+
+describe('loadExcludedIsbns', () => {
+  it('lists every Book in the Library, even one the Reader has only added', async () => {
+    const storage = await openStorage(createTestDatabase());
+    await storage.library.add(dune);
+    await storage.library.add(emma);
+
+    expect(await loadExcludedIsbns(storage)).toEqual(new Set([dune.isbn, emma.isbn]));
+  });
+
+  it('is empty for an empty Library', async () => {
+    const storage = await openStorage(createTestDatabase());
+
+    expect(await loadExcludedIsbns(storage)).toEqual(new Set());
   });
 });
