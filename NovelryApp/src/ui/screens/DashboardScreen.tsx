@@ -6,7 +6,6 @@ import { dashboardView, loadDashboard, type DashboardData } from '../../core/das
 import { formatDuration } from '../../core/duration';
 import { localParts, msUntilNextLocalDay } from '../../core/localTime';
 import { InvalidGoalError, MAX_DAILY_MINUTES_GOAL, MAX_YEARLY_BOOKS_GOAL } from '../../core/storage/storage';
-import { loadAchievements } from '../../core/achievements';
 import { useAppServices } from '../AppServices';
 import { useAnnounceAchievements } from '../useAnnounceAchievements';
 import type { RootStackParamList } from '../RootNavigator';
@@ -34,9 +33,8 @@ export function DashboardScreen() {
     }
     setData(loaded);
     setNow(new Date());
-    await announceAchievements();
-    const achievements = await loadAchievements(storage, new Date(), deviceTimeZone());
-    if (load === latestLoad.current) {
+    const achievements = await announceAchievements();
+    if (achievements && load === latestLoad.current) {
       setAchievementCount({ earned: achievements.filter((a) => a.earned).length, total: achievements.length });
     }
   }, [storage, announceAchievements]);
@@ -150,7 +148,7 @@ export function DashboardScreen() {
       >
         <Text style={styles.achievementsTitle}>Achievements</Text>
         <Text style={styles.achievementsText}>
-          {achievementCount ? `${achievementCount.earned} of ${achievementCount.total} earned` : ' '}
+          {achievementCount ? `${achievementCount.earned} of ${achievementCount.total} earned` : '–'}
         </Text>
         <Text style={styles.achievementsLink}>See all</Text>
       </Pressable>

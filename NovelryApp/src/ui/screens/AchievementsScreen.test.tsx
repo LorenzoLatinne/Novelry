@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import { renderHook } from '@testing-library/react-native';
+import { useAnnounceAchievements } from '../useAnnounceAchievements';
 import fellowship from '../../core/catalog/__fixtures__/fellowship.json';
 import { createOpenLibraryCatalog } from '../../core/catalog/openLibraryCatalog';
 import { openStorage } from '../../core/storage/storage';
@@ -88,6 +90,20 @@ describe('AchievementsScreen', () => {
 });
 
 describe('telling the Reader about a new Achievement', () => {
+  it('shows one notice even when asked twice at the same moment', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const storage = await readerWhoFinishedABook();
+    const { result } = await renderHook(() => useAnnounceAchievements(), {
+      wrapper: ({ children }) => <AppServicesProvider services={{ storage, catalog }}>{children}</AppServicesProvider>,
+    });
+
+    const [first, second] = await Promise.all([result.current(), result.current()]);
+
+    expect(alert).toHaveBeenCalledTimes(1);
+    expect(first).toEqual(second);
+    expect(first?.filter((a) => a.earned)).toHaveLength(2);
+  });
+
   afterEach(() => jest.restoreAllMocks());
 
   async function openDetail() {

@@ -117,7 +117,7 @@ describe('Review section', () => {
     await fireEvent.press(screen.getByText('Delete review'));
     expect(await storage.reviews.get(ISBN)).not.toBeNull();
 
-    const confirm = alert.mock.calls[0][2]!.find((b) => b.text === 'Delete')!;
+    const confirm = alert.mock.calls.find(([title]) => title === 'Delete your review?')![2]!.find((b) => b.text === 'Delete')!;
     await act(async () => confirm.onPress!());
 
     expect(await storage.reviews.get(ISBN)).toBeNull();

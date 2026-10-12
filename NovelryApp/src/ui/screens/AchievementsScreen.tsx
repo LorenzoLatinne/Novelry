@@ -17,10 +17,15 @@ export function AchievementsScreen() {
         if (!active) {
           return;
         }
-        setAchievements(loaded); // shown with their "New" marks...
-        await storage.achievements.markSeen(loaded.filter((a) => a.isNew).map((a) => a.id)); // ...then counted as seen
+        setAchievements(loaded); // shown with their "New" tags...
+        // ...then counted as seen. If that fails the list stays on screen; the tags just show again next time.
+        await storage.achievements.markSeen(loaded.filter((a) => a.isNew).map((a) => a.id)).catch(() => {});
       })
-      .catch(() => active && setFailed(true));
+      .catch(() => {
+        if (active) {
+          setFailed(true);
+        }
+      });
     return () => {
       active = false;
     };
@@ -53,9 +58,9 @@ export function AchievementsScreen() {
           </Text>
           {earned.map((a) => (
             <View key={a.id} style={styles.card}>
-              <View style={styles.titleRow}>
+              <View accessible accessibilityLabel={`${a.title}${a.isNew ? ', new' : ''}. ${a.description}`} style={styles.titleRow}>
                 <Text style={styles.title}>{a.title}</Text>
-                {a.isNew ? <Text style={styles.newBadge}>New</Text> : null}
+                {a.isNew ? <Text style={styles.newTag}>New</Text> : null}
               </View>
               <Text style={styles.muted}>{a.description}</Text>
               {a.earnedAt ? <Text style={styles.date}>Earned {formatDay(a.earnedAt)}</Text> : null}
@@ -96,8 +101,7 @@ function formatDay(iso: string): string {
 
 /** "3 of 5 books" style progress, in the rule's own unit. */
 function progressText(a: Achievement): string {
-  const unit = a.id.includes('book') ? 'books' : a.id.includes('streak') ? 'days' : 'minutes';
-  return `${a.current} of ${a.target} ${unit}`;
+  return `${a.current} of ${a.target} ${a.unit}`;
 }
 
 const styles = StyleSheet.create({
@@ -118,7 +122,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
   date: { fontSize: 14, color: colors.textMuted, marginTop: 6 },
-  newBadge: { fontSize: 12, fontWeight: '700', color: colors.onPrimary, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  newTag: { fontSize: 12, fontWeight: '700', color: colors.onPrimary, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.border, marginTop: 8, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
 });

@@ -207,6 +207,7 @@ describe('achievements', () => {
         title: 'Two of a kind',
         description: 'Finish two books.',
         target: 2,
+        unit: 'books' as const,
         measure: (h: AchievementHistory) => new Set(h.finishes.map((f) => f.isbn)).size,
       };
 
@@ -214,6 +215,15 @@ describe('achievements', () => {
 
       expect(all).toHaveLength(ACHIEVEMENT_RULES.length + 1);
       expect(all.find((a) => a.id === 'two-books')).toMatchObject({ earned: true, current: 2, target: 2 });
+    });
+
+    it('says in what unit each rule counts, so progress can be shown correctly', () => {
+      const unitOf = (id: string) => ACHIEVEMENT_RULES.find((rule) => rule.id === id)!.unit;
+
+      expect(unitOf('five-books')).toBe('books');
+      expect(unitOf('first-hour')).toBe('minutes');
+      expect(unitOf('seven-day-streak')).toBe('days');
+      expect(status(nobody, 'ten-hours').unit).toBe('minutes');
     });
 
     it('has unique ids', () => {

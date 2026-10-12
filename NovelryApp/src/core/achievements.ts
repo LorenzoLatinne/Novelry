@@ -14,11 +14,15 @@ export type AchievementHistory = {
  * Achievement is earned once it reaches `target`. Adding a rule to the list is all that adding an
  * Achievement takes: nothing about them is stored, so there is nothing to migrate.
  */
+/** What a rule counts, so progress reads "3 of 5 books". */
+export type AchievementUnit = 'books' | 'minutes' | 'days';
+
 export type AchievementRule = {
   id: string;
   title: string;
   description: string;
   target: number;
+  unit: AchievementUnit;
   measure: (history: AchievementHistory, now: Date, timeZone: string) => number;
 };
 
@@ -26,6 +30,7 @@ export type Achievement = {
   id: string;
   title: string;
   description: string;
+  unit: AchievementUnit;
   /** Progress toward the target, never more than the target. */
   current: number;
   target: number;
@@ -90,6 +95,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'First chapter closed',
     description: 'Finish your first book.',
     target: 1,
+    unit: 'books',
     measure: differentBooksFinished,
   },
   {
@@ -97,6 +103,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'Bookshelf builder',
     description: 'Finish five different books.',
     target: 5,
+    unit: 'books',
     measure: differentBooksFinished,
   },
   {
@@ -104,6 +111,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'Page turner',
     description: 'Finish ten different books.',
     target: 10,
+    unit: 'books',
     measure: differentBooksFinished,
   },
   {
@@ -111,6 +119,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'Lost in a book',
     description: 'Read for one hour in total.',
     target: 60,
+    unit: 'minutes',
     measure: minutesRead,
   },
   {
@@ -118,6 +127,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'Deep reader',
     description: 'Read for ten hours in total.',
     target: 600,
+    unit: 'minutes',
     measure: minutesRead,
   },
   {
@@ -125,6 +135,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'Getting into the habit',
     description: 'Read three days in a row.',
     target: 3,
+    unit: 'days',
     measure: longestStreak,
   },
   {
@@ -132,6 +143,7 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     title: 'A week of reading',
     description: 'Read seven days in a row.',
     target: 7,
+    unit: 'days',
     measure: longestStreak,
   },
 ];
@@ -152,6 +164,7 @@ export function evaluateAchievements(
       id: rule.id,
       title: rule.title,
       description: rule.description,
+      unit: rule.unit,
       current: Math.min(measured, rule.target),
       target: rule.target,
       earned: measured >= rule.target,
