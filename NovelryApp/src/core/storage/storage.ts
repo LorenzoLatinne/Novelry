@@ -122,13 +122,20 @@ export interface Goals {
 }
 
 /** An Achievement the Reader has earned, and when it was first noticed to be earned. */
-export type EarnedAchievement = { id: string; earnedAt: string };
+export type EarnedAchievement = {
+  id: string;
+  earnedAt: string;
+  /** The Reader has been told about it. */
+  seen: boolean;
+};
 
 export interface EarnedAchievements {
   /** Every earned Achievement, oldest first. Earning is permanent. */
   all(): Promise<EarnedAchievement[]>;
   /** Records Achievements as earned. One that is already recorded keeps its first date. */
   recordEarned(ids: string[], at?: Date): Promise<void>;
+  /** Remembers that the Reader has been told about these Achievements. */
+  markSeen(ids: string[]): Promise<void>;
 }
 
 export interface Library {
@@ -576,10 +583,15 @@ export async function openStorage(
     },
     achievements: {
       async all() {
-        const rows = await database.getAll<{ id: string; earned_at: string }>(
-          'SELECT id, earned_at FROM earned_achievements ORDER BY earned_at, id',
+        const rows = await database.getAll<{ id: string; earned_at: string; seen: number }>(
+          'SELECT id, earned_at, seen FROM earned_achievements ORDER BY earned_at, id',
         );
-        return rows.map((row) => ({ id: row.id, earnedAt: row.earned_at }));
+        return rows.map((row) => ({ id: row.id, earnedAt: row.earned_at, seen: row.seen === 1 }));
+      },
+      async markSeen(ids) {
+        for (const id of ids) {
+          await database.run('UPDATE earned_achievements SET seen = 1 WHERE id = ?', [id]);
+        }
       },
       async recordEarned(ids, at = new Date()) {
         for (const id of ids) {

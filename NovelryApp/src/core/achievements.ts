@@ -33,6 +33,8 @@ export type Achievement = {
   earned: boolean;
   /** When it was first noticed to be earned, or null. */
   earnedAt: string | null;
+  /** Earned, but the Reader has not been told yet. */
+  isNew: boolean;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -154,6 +156,7 @@ export function evaluateAchievements(
       target: rule.target,
       earned: measured >= rule.target,
       earnedAt: null,
+      isNew: false,
     };
   });
 }
@@ -170,10 +173,15 @@ export async function loadAchievements(storage: Storage, now: Date, timeZone: st
     evaluated.filter((achievement) => achievement.earned).map((achievement) => achievement.id),
     now,
   );
-  const recorded = new Map((await storage.achievements.all()).map((earned) => [earned.id, earned.earnedAt]));
+  const recorded = new Map((await storage.achievements.all()).map((earned) => [earned.id, earned]));
 
   return evaluated.map((achievement) => {
-    const earnedAt = recorded.get(achievement.id) ?? null;
-    return { ...achievement, earned: earnedAt !== null, earnedAt };
+    const earned = recorded.get(achievement.id);
+    return {
+      ...achievement,
+      earned: earned !== undefined,
+      earnedAt: earned?.earnedAt ?? null,
+      isNew: earned !== undefined && !earned.seen,
+    };
   });
 }

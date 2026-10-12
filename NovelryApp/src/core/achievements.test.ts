@@ -295,5 +295,31 @@ describe('achievements', () => {
       expect(all.find((a) => a.id === 'three-day-streak')).toMatchObject({ earned: true, earnedAt: '2026-03-09T11:00:00.000Z' });
       expect(all.find((a) => a.id === 'first-book')?.earnedAt).toBe('2026-03-02T11:00:00.000Z');
     });
+  
+    it('shows an Achievement as new until the Reader has been told about it, once', async () => {
+      const storage = await readerWithOneFinishedBook();
+
+      const first = await loadAchievements(storage, T0, BRUSSELS);
+      expect(first.filter((a) => a.isNew).map((a) => a.id)).toEqual(['first-book', 'first-hour']);
+
+      await storage.achievements.markSeen(first.filter((a) => a.isNew).map((a) => a.id));
+      const second = await loadAchievements(storage, T1, BRUSSELS);
+
+      expect(second.filter((a) => a.isNew)).toEqual([]);
+      expect(second.filter((a) => a.earned)).toHaveLength(2);
+    });
+
+    it('only the Achievement earned since is new the next time', async () => {
+      const storage = await readerWithOneFinishedBook();
+      const first = await loadAchievements(storage, T0, BRUSSELS);
+      await storage.achievements.markSeen(first.filter((a) => a.isNew).map((a) => a.id));
+      await storage.library.add({ isbn: '2', title: 'Two', authors: [], genres: [] });
+      await storage.sessions.addManual('2', new Date('2026-03-03T09:00:00Z'), new Date('2026-03-03T09:10:00Z'), NOW);
+      await storage.sessions.addManual('2', new Date('2026-03-04T09:00:00Z'), new Date('2026-03-04T09:10:00Z'), NOW);
+
+      const next = await loadAchievements(storage, T1, BRUSSELS);
+
+      expect(next.filter((a) => a.isNew).map((a) => a.id)).toEqual(['three-day-streak']);
+    });
   });
 });
