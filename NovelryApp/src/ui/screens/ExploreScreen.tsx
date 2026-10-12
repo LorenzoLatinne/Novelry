@@ -11,21 +11,28 @@ import { colors } from '../theme';
 /** Wait for the Reader to stop typing before asking Open Library, to be rate-limit friendly. */
 const SEARCH_DELAY_MS = 400;
 
-type State =
+type SearchState =
   | { kind: 'idle' }
   | { kind: 'searching' }
   | { kind: 'results'; books: Book[] }
   | { kind: 'no-match' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; reason: 'offline' | 'unavailable' };
+
+const ERROR_MESSAGES = {
+  offline: 'You seem to be offline. Connect to the internet to search for books.',
+  unavailable: 'Search is not available right now. Please try again in a moment.',
+};
 
 export function ExploreScreen() {
   const { catalog } = useAppServices();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [query, setQuery] = useState('');
-  const [state, setState] = useState<State>({ kind: 'idle' });
+  const [state, setState] = useState<SearchState>({ kind: 'idle' });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setState({ kind: 'idle' });
       return;
     }
@@ -34,7 +41,7 @@ export function ExploreScreen() {
     setState({ kind: 'searching' });
     const timer = setTimeout(async () => {
       try {
-        const { books } = await catalog.searchBooks(query);
+        const { books } = await catalog.searchBooks(trimmed);
         if (current) {
           setState(books.length > 0 ? { kind: 'results', books } : { kind: 'no-match' });
         }
@@ -42,10 +49,7 @@ export function ExploreScreen() {
         if (current) {
           setState({
             kind: 'error',
-            message:
-              error instanceof CatalogOfflineError
-                ? 'You seem to be offline. Connect to the internet to search for books.'
-                : 'Search is not available right now. Please try again in a moment.',
+            reason: error instanceof CatalogOfflineError ? 'offline' : 'unavailable',
           });
         }
       }
@@ -55,7 +59,7 @@ export function ExploreScreen() {
       current = false;
       clearTimeout(timer);
     };
-  }, [catalog, query]);
+  }, [catalog, query, attempt]);
 
   return (
     <View style={styles.container}>
@@ -67,19 +71,28 @@ export function ExploreScreen() {
         onChangeText={setQuery}
         placeholder="Search by title or author"
         placeholderTextColor={colors.textMuted}
-        returnKeyType="search"
+        returnKeyType="done"
         style={styles.input}
         value={query}
       />
       <Results
         state={state}
         onOpen={(isbn) => navigation.navigate('BookDetail', { isbn })}
+        onRetry={() => setAttempt((n) => n + 1)}
       />
     </View>
   );
 }
 
-function Results({ state, onOpen }: { state: State; onOpen: (isbn: string) => void }) {
+function Results({
+  state,
+  onOpen,
+  onRetry,
+}: {
+  state: SearchState;
+  onOpen: (isbn: string) => void;
+  onRetry: () => void;
+}) {
   switch (state.kind) {
     case 'idle':
       return <Message text="Search for a book by title or author." />;
@@ -90,9 +103,18 @@ function Results({ state, onOpen }: { state: State; onOpen: (isbn: string) => vo
         </View>
       );
     case 'no-match':
-      return <Message text="No books found. Try a different title or author." />;
+      return <Message text="No books found. Try a different title or author." live />;
     case 'error':
-      return <Message text={state.message} live />;
+      return (
+        <View style={styles.centered}>
+          <Text accessibilityLiveRegion="polite" style={styles.message}>
+            {ERROR_MESSAGES[state.reason]}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={onRetry} style={styles.button}>
+            <Text style={styles.buttonText}>Try again</Text>
+          </Pressable>
+        </View>
+      );
     case 'results':
       return (
         <FlatList
@@ -102,14 +124,16 @@ function Results({ state, onOpen }: { state: State; onOpen: (isbn: string) => vo
           renderItem={({ item }) => (
             <Pressable accessibilityRole="button" onPress={() => onOpen(item.isbn)} style={styles.row}>
               <Text style={styles.rowTitle}>{item.title}</Text>
-              <Text style={styles.rowMeta}>
-                {[item.authors.join(', '), item.publishedYear].filter(Boolean).join(' · ')}
-              </Text>
+              {meta(item) ? <Text style={styles.rowMeta}>{meta(item)}</Text> : null}
             </Pressable>
           )}
         />
       );
   }
+}
+
+function meta(book: Book): string {
+  return [book.authors.join(', '), book.publishedYear].filter(Boolean).join(' · ');
 }
 
 function Message({ text, live = false }: { text: string; live?: boolean }) {
@@ -138,5 +162,7 @@ const styles = StyleSheet.create({
   message: { fontSize: 16, color: colors.textMuted, textAlign: 'center' },
   row: { padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   rowTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+  button: { marginTop: 16, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, backgroundColor: colors.primary },
+  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   rowMeta: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
 });
