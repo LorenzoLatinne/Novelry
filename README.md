@@ -13,7 +13,7 @@ Done:
 - On-device storage with versioned migrations (your data stays on your phone)
 - Search books by title or author (powered by [Open Library](https://openlibrary.org)) on the Explore tab
 - Book detail screen with *Add to Library*; added Books are saved on the device and show offline
-- Your Library lists the books you added
+- Your Library lists the books you added, filterable by shelf and searchable by title or author
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 
 Planned (see [issue #2](https://github.com/LorenzoLatinne/Novelry/issues/2)):

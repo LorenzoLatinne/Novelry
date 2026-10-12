@@ -198,6 +198,22 @@ describe('storage', () => {
       expect(await storage.books.get(fellowship.isbn)).toBeNull();
     });
 
+    it('lists Library Entries together with their Books, oldest first', async () => {
+      const database = createTestDatabase();
+      const storage = await openStorage(database);
+      await storage.library.add(fellowship);
+      await database.run(
+        "INSERT INTO library_entries (isbn, shelf, current_page, added_at) VALUES ('9780000000002', 'read', 10, '2000-01-01')",
+      );
+
+      const items = await storage.library.listWithBooks();
+
+      expect(items.map((i) => [i.entry.isbn, i.book?.title ?? null])).toEqual([
+        ['9780000000002', null],
+        ['9780261102354', 'The Fellowship of the Ring'],
+      ]);
+    });
+
     it('finds the Library Entry for a Book, or none', async () => {
       const storage = await openStorage(createTestDatabase());
       await storage.library.add(fellowship);
