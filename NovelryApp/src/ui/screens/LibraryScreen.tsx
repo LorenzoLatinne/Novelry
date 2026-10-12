@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { viewLibrary } from '../../core/libraryView';
+import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import type { LibraryEntryWithBook } from '../../core/storage/storage';
 import { useAppServices } from '../AppServices';
@@ -119,7 +120,15 @@ export function LibraryScreen() {
             >
               <Text style={styles.rowTitle}>{book?.title ?? entry.isbn}</Text>
               <Text style={styles.rowMeta}>
-                {[book?.authors.join(', '), SHELF_LABELS[entry.shelf]].filter(Boolean).join(' · ')}
+                {[
+                  book?.authors.join(', '),
+                  SHELF_LABELS[entry.shelf],
+                  entry.shelf === 'reading' && progressPercent(entry.currentPage, book?.pageCount) !== null
+                    ? `${progressPercent(entry.currentPage, book?.pageCount)}%`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </Pressable>
           )}

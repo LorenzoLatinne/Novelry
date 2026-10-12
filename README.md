@@ -14,6 +14,7 @@ Done:
 - Search books by title or author (powered by [Open Library](https://openlibrary.org)) on the Explore tab
 - Book detail screen with *Add to Library*; added Books are saved on the device and show offline
 - Your Library lists the books you added, filterable by shelf and searchable by title or author
+- Record the page you are on; the shelf follows (first page → *Reading*, last page → *Read*), with a progress percentage
 - Move a book between the shelves *Want to read*, *Reading* and *Read*, or remove it from your Library
 - Scan a book's ISBN barcode with the camera (or type the ISBN); the camera is used only for scanning and nothing is recorded
 

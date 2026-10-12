@@ -271,12 +271,134 @@ describe('storage', () => {
       });
     });
 
+    it('keeps the page when the same Book is added again', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 80);
+
+      await storage.library.add(fellowship);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ currentPage: 80 });
+    });
+
     it('finds the Library Entry for a Book, or none', async () => {
       const storage = await openStorage(createTestDatabase());
       await storage.library.add(fellowship);
 
       expect(await storage.library.find('9780261102354')).toMatchObject({ shelf: 'want-to-read' });
       expect(await storage.library.find('9780000000002')).toBeNull();
+    });
+  });
+
+  describe('recording reading progress', () => {
+    async function libraryWith(book: Book) {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add(book);
+      return storage;
+    }
+
+    it('moves a Book from Want to read to Reading when the first page is recorded', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.library.recordPage(fellowship.isbn, 12);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 12,
+        shelf: 'reading',
+      });
+    });
+
+    it('moves the Book to Read when the last page is reached', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.library.recordPage(fellowship.isbn, 545);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 545,
+        shelf: 'read',
+      });
+    });
+
+    it('moves a Read Book back to Reading when the page is lowered', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 545);
+
+      await storage.library.recordPage(fellowship.isbn, 300);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 300,
+        shelf: 'reading',
+      });
+    });
+
+    it('keeps the Shelf when page zero is recorded on a Book being read', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 40);
+
+      await storage.library.recordPage(fellowship.isbn, 0);
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 0,
+        shelf: 'reading',
+      });
+    });
+
+    it('rejects pages past the end of the Book, below zero, or not whole numbers', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await expect(storage.library.recordPage(fellowship.isbn, 546)).rejects.toThrow(/between 0 and 545/);
+      await expect(storage.library.recordPage(fellowship.isbn, -1)).rejects.toThrow(/between 0 and 545/);
+      await expect(storage.library.recordPage(fellowship.isbn, 12.5)).rejects.toThrow(/whole number/);
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 0,
+        shelf: 'want-to-read',
+      });
+    });
+
+    it('records any page for a Book with an unknown length, without finishing it', async () => {
+      const storage = await libraryWith({ isbn: '9780000000002', title: 'Mystery', authors: [], genres: [] });
+
+      await storage.library.recordPage('9780000000002', 1200);
+
+      expect(await storage.library.find('9780000000002')).toMatchObject({
+        currentPage: 1200,
+        shelf: 'reading',
+      });
+    });
+
+    it('refuses to record a page for a Book that is not in the Library', async () => {
+      const storage = await openStorage(createTestDatabase());
+
+      await expect(storage.library.recordPage('9780000000002', 5)).rejects.toThrow(/not in your Library/);
+    });
+
+    it('puts the page at the end when a Book is moved to Read', async () => {
+      const storage = await libraryWith(fellowship);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'read');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ currentPage: 545, shelf: 'read' });
+    });
+
+    it('starts the page over when a Book is moved back to Want to read', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 200);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'want-to-read');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({
+        currentPage: 0,
+        shelf: 'want-to-read',
+      });
+    });
+
+    it('keeps the page when a Book is moved to Reading', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.recordPage(fellowship.isbn, 200);
+
+      await storage.library.moveToShelf(fellowship.isbn, 'reading');
+
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ currentPage: 200, shelf: 'reading' });
     });
   });
 });

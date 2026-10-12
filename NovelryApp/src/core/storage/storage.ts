@@ -20,6 +20,11 @@ export interface Library {
   find(isbn: string): Promise<LibraryEntry | null>;
   /** Moves a Book already in the Library to another Shelf; throws if it is not in the Library. */
   moveToShelf(isbn: string, shelf: Shelf): Promise<void>;
+  /**
+   * Records how far the Reader has got. The Shelf follows: the first page moves Want to read to
+   * Reading, the last page moves the Book to Read, and going back from the last page returns it to Reading.
+   */
+  recordPage(isbn: string, page: number): Promise<void>;
   /** Takes a Book out of the Library. Its saved details stay on the device. Removing an absent Book is a no-op. */
   remove(isbn: string): Promise<void>;
   /** Puts a Book on the Want to read Shelf. A Book already in the Library is left untouched. */
@@ -117,6 +122,23 @@ export async function openStorage(
     return row ? toEntry(row) : null;
   }
 
+  async function requireEntry(isbn: string): Promise<LibraryEntry> {
+    const entry = await findEntry(isbn);
+    if (!entry) {
+      throw new Error(`The book ${isbn} is not in your Library.`);
+    }
+    return entry;
+  }
+
+  /** The Book's length in pages, or null if unknown (or the Book's details were never saved). */
+  async function pageCountOf(isbn: string): Promise<number | null> {
+    const [row] = await database.getAll<{ page_count: number | null }>(
+      'SELECT page_count FROM books WHERE isbn = ?',
+      [isbn],
+    );
+    return row?.page_count ?? null;
+  }
+
   return {
     schemaVersion: () => readVersion(database),
     library: {
@@ -153,10 +175,40 @@ export async function openStorage(
         }));
       },
       async moveToShelf(isbn, shelf) {
-        if (!(await findEntry(isbn))) {
-          throw new Error(`The book ${isbn} is not in your Library.`);
+        const entry = await requireEntry(isbn);
+        const total = await pageCountOf(isbn);
+        const page = shelf === 'read' && total ? total : shelf === 'want-to-read' ? 0 : entry.currentPage;
+        await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
+          shelf,
+          page,
+          isbn,
+        ]);
+      },
+      async recordPage(isbn, page) {
+        if (!Number.isInteger(page)) {
+          throw new Error('The page must be a whole number.');
         }
-        await database.run('UPDATE library_entries SET shelf = ? WHERE isbn = ?', [shelf, isbn]);
+        const entry = await requireEntry(isbn);
+        const total = await pageCountOf(isbn);
+        if (page < 0 || (total !== null && page > total)) {
+          throw new Error(
+            total === null ? 'The page cannot be below 0.' : `The page must be between 0 and ${total}.`,
+          );
+        }
+
+        let shelf = entry.shelf;
+        if (total !== null && page === total) {
+          shelf = 'read';
+        } else if (total !== null && shelf === 'read') {
+          shelf = 'reading';
+        } else if (page > 0 && shelf === 'want-to-read') {
+          shelf = 'reading';
+        }
+        await database.run('UPDATE library_entries SET shelf = ?, current_page = ? WHERE isbn = ?', [
+          shelf,
+          page,
+          isbn,
+        ]);
       },
       async remove(isbn) {
         await database.run('DELETE FROM library_entries WHERE isbn = ?', [isbn]);

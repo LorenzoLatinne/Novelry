@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
+import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
 import { colors } from '../theme';
@@ -27,6 +38,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pageText, setPageText] = useState('');
   const latestRequest = useRef(0);
 
   const load = useCallback(
@@ -56,6 +68,13 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       latestRequest.current++; // ignore any answer that arrives after we are gone
     };
   }, [load]);
+
+  const savedPage = state.kind === 'ready' ? state.detail.entry?.currentPage : undefined;
+  useEffect(() => {
+    if (savedPage !== undefined) {
+      setPageText(String(savedPage));
+    }
+  }, [savedPage]);
 
   if (state.kind === 'loading') {
     return (
@@ -108,6 +127,18 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       ? Promise.resolve()
       : change(() => storage.library.moveToShelf(book.isbn, shelf), 'Could not move this book. Please try again.');
 
+  function savePage() {
+    const page = Number(pageText.trim());
+    if (pageText.trim() === '' || Number.isNaN(page)) {
+      setActionError('Enter the page you are on, as a number.');
+      return Promise.resolve();
+    }
+    return change(
+      () => storage.library.recordPage(book.isbn, page),
+      book.pageCount ? `Enter a page between 0 and ${book.pageCount}.` : 'Enter a page of 0 or more.',
+    );
+  }
+
   function confirmRemove() {
     Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -141,6 +172,29 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       {entry ? (
         <>
           <Text style={styles.shelf}>In your Library · {SHELF_LABELS[entry.shelf]}</Text>
+          <View style={styles.progress}>
+            <Text accessibilityRole="header" style={styles.progressTitle}>
+              Your progress
+            </Text>
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>Page</Text>
+              <TextInput
+                accessibilityLabel="Current page"
+                keyboardType="number-pad"
+                onChangeText={setPageText}
+                onSubmitEditing={savePage}
+                style={styles.pageInput}
+                value={pageText}
+              />
+              {book.pageCount ? <Text style={styles.progressLabel}>of {book.pageCount}</Text> : null}
+              <Pressable accessibilityRole="button" onPress={savePage} style={styles.saveButton}>
+                <Text style={styles.buttonText}>Save</Text>
+              </Pressable>
+            </View>
+            {progressPercent(entry.currentPage, book.pageCount) !== null ? (
+              <Text style={styles.facts}>{progressPercent(entry.currentPage, book.pageCount)}% read</Text>
+            ) : null}
+          </View>
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {
               const selected = entry.shelf === shelf;
@@ -191,6 +245,23 @@ const styles = StyleSheet.create({
   facts: { fontSize: 14, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   description: { fontSize: 16, color: colors.text, marginTop: 16, lineHeight: 22 },
   shelf: { fontSize: 16, fontWeight: '600', color: colors.primary, marginTop: 24 },
+  progress: { alignItems: 'center', marginTop: 16 },
+  progressTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  progressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  progressLabel: { fontSize: 16, color: colors.text, marginHorizontal: 8 },
+  pageInput: {
+    minWidth: 64,
+    minHeight: 44,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  saveButton: { marginLeft: 8, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 8, backgroundColor: colors.primary },
   shelves: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 12 },
   chip: {
     minHeight: 44,

@@ -101,4 +101,44 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByText(/Could not move this book/)).toBeTruthy();
     expect(screen.getByText('In your Library · Want to read')).toBeTruthy();
   });
+
+  it('records the current page and shows the progress', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('Your progress');
+
+    await fireEvent.changeText(screen.getByLabelText('Current page'), '120');
+    await fireEvent.press(screen.getByText('Save'));
+
+    expect(await screen.findByText('22% read')).toBeTruthy();
+    expect(await screen.findByText('In your Library · Reading')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ currentPage: 120 });
+  });
+
+  it('finishes the Book when the last page is saved', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('Your progress');
+
+    await fireEvent.changeText(screen.getByLabelText('Current page'), '545');
+    await fireEvent.press(screen.getByText('Save'));
+
+    expect(await screen.findByText('In your Library · Read')).toBeTruthy();
+    expect(screen.getByText('100% read')).toBeTruthy();
+  });
+
+  it('asks for a valid page when the number is out of range', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => fellowship }));
+    const storage = await renderDetail(fetch);
+    await fireEvent.press(await screen.findByText('Add to Library'));
+    await screen.findByText('Your progress');
+
+    await fireEvent.changeText(screen.getByLabelText('Current page'), '9999');
+    await fireEvent.press(screen.getByText('Save'));
+
+    expect(await screen.findByText('Enter a page between 0 and 545.')).toBeTruthy();
+    expect(await storage.library.find('9780261102354')).toMatchObject({ currentPage: 0 });
+  });
 });
