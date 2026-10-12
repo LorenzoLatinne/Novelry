@@ -37,11 +37,25 @@ export class SessionAlreadyRunningError extends Error {
   }
 }
 
+/** The times given for a manually added session cannot be recorded. */
+export class InvalidSessionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidSessionError';
+  }
+}
+
 export interface ReadingSessions {
   /** Starts a session on a Book in the Library. Only one session can run at a time. */
   start(isbn: string, at?: Date): Promise<ReadingSession>;
   /** Ends the running session. Throws if none is running. If the clock went backwards it ends at its start. */
   stop(at?: Date): Promise<ReadingSession>;
+  /** Adds a finished session after the fact. It must end after it starts and not in the future. */
+  addManual(isbn: string, startedAt: Date, endedAt: Date, now?: Date): Promise<ReadingSession>;
+  /** Deletes a finished session. Deleting one that does not exist, or one still running, is a no-op. */
+  remove(id: number): Promise<void>;
+  /** Every session of every Book, oldest first. */
+  all(): Promise<ReadingSession[]>;
   /** The running session, if any. It survives the app being closed. */
   running(): Promise<ReadingSession | null>;
   /** A Book's finished and running sessions, newest first. */
@@ -361,6 +375,31 @@ export async function openStorage(
         const endedAt = at.toISOString() < running.startedAt ? running.startedAt : at.toISOString();
         await database.run('UPDATE reading_sessions SET ended_at = ? WHERE id = ?', [endedAt, running.id]);
         return { ...running, endedAt };
+      },
+      async addManual(isbn, startedAt, endedAt, now = new Date()) {
+        await requireEntry(isbn);
+        if (!(endedAt.getTime() > startedAt.getTime())) {
+          throw new InvalidSessionError('A reading session must end after it starts.');
+        }
+        if (endedAt.getTime() > now.getTime()) {
+          throw new InvalidSessionError('A reading session cannot end in the future.');
+        }
+        const [row] = await database.getAll<SessionRow>(
+          `INSERT INTO reading_sessions (isbn, started_at, ended_at) VALUES (?, ?, ?)
+           RETURNING ${SESSION_COLUMNS}`,
+          [isbn, startedAt.toISOString(), endedAt.toISOString()],
+        );
+        return toSession(row);
+      },
+      async remove(id) {
+        // A running session is stopped, not deleted.
+        await database.run('DELETE FROM reading_sessions WHERE id = ? AND ended_at IS NOT NULL', [id]);
+      },
+      async all() {
+        const rows = await database.getAll<SessionRow>(
+          `SELECT ${SESSION_COLUMNS} FROM reading_sessions ORDER BY started_at, id`,
+        );
+        return rows.map(toSession);
       },
       async list(isbn) {
         const rows = await database.getAll<SessionRow>(

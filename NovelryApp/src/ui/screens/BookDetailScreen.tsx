@@ -12,12 +12,16 @@ import {
 } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
 import { formatDuration } from '../../core/duration';
-import { InvalidPageError, type ReadingSession } from '../../core/storage/storage';
+import { InvalidPageError, InvalidSessionError, type ReadingSession } from '../../core/storage/storage';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
 import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
 import { useAppServices } from '../AppServices';
 import { colors } from '../theme';
+
+type SessionDay = 'today' | 'yesterday';
+
+const MAX_SESSION_MINUTES = 24 * 60;
 
 type State =
   | { kind: 'loading' }
@@ -41,6 +45,8 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [pageText, setPageText] = useState('');
+  const [minutesText, setMinutesText] = useState('');
+  const [sessionDay, setSessionDay] = useState<SessionDay>('today');
   const latestRequest = useRef(0);
 
   const load = useCallback(
@@ -105,7 +111,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     );
   }
 
-  const { book, entry, runningSession } = state.detail;
+  const { book, entry, runningSession, sessions } = state.detail;
   const percent = entry ? progressPercent(entry.currentPage, book.pageCount) : null;
   const facts = [
     book.pageCount ? `${book.pageCount} pages` : null,
@@ -119,7 +125,9 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
       await load({ quiet: true });
     } catch (error) {
       // Entering a bad page is the Reader's to fix; anything else is a failure to apologise for.
-      setActionError(error instanceof InvalidPageError ? error.message : failure);
+      setActionError(
+        error instanceof InvalidPageError || error instanceof InvalidSessionError ? error.message : failure,
+      );
     }
   }
 
@@ -145,6 +153,37 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
 
   const stopSession = () =>
     change(() => storage.sessions.stop(), 'Could not stop the session. Please try again.');
+
+  function addSessionManually() {
+    const text = minutesText.trim();
+    const minutes = Number(text);
+    if (!/^\d+$/.test(text) || minutes < 1 || minutes > MAX_SESSION_MINUTES) {
+      setActionError('Enter how many minutes you read, between 1 and 1440.');
+      return Promise.resolve();
+    }
+    // Yesterday means the same clock time on the previous calendar day (not 24 hours ago: clocks change).
+    const end = new Date();
+    if (sessionDay === 'yesterday') {
+      end.setDate(end.getDate() - 1);
+    }
+    const start = new Date(end.getTime() - minutes * 60 * 1000);
+    return change(async () => {
+      await storage.sessions.addManual(book.isbn, start, end);
+      setMinutesText('');
+    }, 'Could not add this session. Please try again.');
+  }
+
+  function confirmDeleteSession(session: ReadingSession) {
+    Alert.alert('Delete this session?', `${describeSession(session)} will be deleted.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          change(() => storage.sessions.remove(session.id), 'Could not delete this session. Please try again.'),
+      },
+    ]);
+  }
 
   function confirmRemove() {
     Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
@@ -209,6 +248,15 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
             running={runningSession}
             onStart={startSession}
             onStop={stopSession}
+          />
+          <SessionHistory
+            sessions={sessions}
+            minutesText={minutesText}
+            onMinutesChange={setMinutesText}
+            day={sessionDay}
+            onDayChange={setSessionDay}
+            onAdd={addSessionManually}
+            onDelete={confirmDeleteSession}
           />
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {
@@ -293,6 +341,71 @@ function SessionPanel({
       ) : (
         <OtherOrNoSession busy={running !== null} onStart={onStart} />
       )}
+    </View>
+  );
+}
+
+function describeSession(session: ReadingSession): string {
+  const start = Date.parse(session.startedAt);
+  const seconds = session.endedAt ? (Date.parse(session.endedAt) - start) / 1000 : 0;
+  const day = new Date(start).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${formatDuration(seconds)}`;
+}
+
+function SessionHistory(props: {
+  sessions: ReadingSession[];
+  minutesText: string;
+  onMinutesChange: (text: string) => void;
+  day: SessionDay;
+  onDayChange: (day: SessionDay) => void;
+  onAdd: () => void;
+  onDelete: (session: ReadingSession) => void;
+}) {
+  const finished = props.sessions.filter((session) => session.endedAt);
+  return (
+    <View style={styles.progress}>
+      <Text accessibilityRole="header" style={styles.progressTitle}>
+        Add a session you forgot to time
+      </Text>
+      <View style={styles.progressRow}>
+        <TextInput
+          accessibilityLabel="Minutes read"
+          keyboardType="number-pad"
+          onChangeText={props.onMinutesChange}
+          placeholder="Minutes"
+          style={styles.pageInput}
+          value={props.minutesText}
+        />
+        {(['today', 'yesterday'] as const).map((day) => (
+          <Pressable
+            key={day}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: props.day === day }}
+            onPress={() => props.onDayChange(day)}
+            style={[styles.chip, props.day === day && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, props.day === day && styles.chipTextSelected]}>
+              {day === 'today' ? 'Today' : 'Yesterday'}
+            </Text>
+          </Pressable>
+        ))}
+        <Pressable accessibilityRole="button" onPress={props.onAdd} style={styles.saveButton}>
+          <Text style={styles.buttonText}>Add</Text>
+        </Pressable>
+      </View>
+      {finished.map((session) => (
+        <View key={session.id} style={styles.progressRow}>
+          <Text style={styles.progressLabel}>{describeSession(session)}</Text>
+          <Pressable
+            accessibilityLabel={`Delete session ${describeSession(session)}`}
+            accessibilityRole="button"
+            onPress={() => props.onDelete(session)}
+            style={styles.removeButton}
+          >
+            <Text style={styles.removeText}>Delete</Text>
+          </Pressable>
+        </View>
+      ))}
     </View>
   );
 }
