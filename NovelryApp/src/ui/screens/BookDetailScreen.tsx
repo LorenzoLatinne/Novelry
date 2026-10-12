@@ -112,7 +112,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     book.publishedYear ? `First published ${book.publishedYear}` : null,
   ].filter(Boolean);
 
-  async function change(action: () => Promise<void>, failure: string) {
+  async function change(action: () => Promise<unknown>, failure: string) {
     setActionError(null);
     try {
       await action();
@@ -139,6 +139,12 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     }
     return change(() => storage.library.recordPage(book.isbn, Number(text)), 'Could not save your page. Please try again.');
   }
+
+  const startSession = () =>
+    change(() => storage.sessions.start(book.isbn), 'Could not start the session. Please try again.');
+
+  const stopSession = () =>
+    change(() => storage.sessions.stop(), 'Could not stop the session. Please try again.');
 
   function confirmRemove() {
     Alert.alert('Remove from Library?', `“${book.title}” will be removed from your Library.`, [
@@ -201,8 +207,8 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
           <SessionPanel
             isbn={book.isbn}
             running={runningSession}
-            onStart={() => change(() => storage.sessions.start(book.isbn).then(() => {}), 'Could not start the session. Please try again.')}
-            onStop={() => change(() => storage.sessions.stop().then(() => {}), 'Could not stop the session. Please try again.')}
+            onStart={startSession}
+            onStop={stopSession}
           />
           <View accessibilityRole="radiogroup" style={styles.shelves}>
             {SHELVES.map((shelf) => {
@@ -268,6 +274,8 @@ function SessionPanel({
     return () => clearInterval(timer);
   }, [thisBook]);
 
+  const elapsed = running ? formatDuration((now - Date.parse(running.startedAt)) / 1000) : '';
+
   return (
     <View style={styles.progress}>
       <Text accessibilityRole="header" style={styles.progressTitle}>
@@ -275,25 +283,28 @@ function SessionPanel({
       </Text>
       {thisBook ? (
         <>
-          <Text
-            accessibilityLabel={`Reading for ${formatDuration((now - Date.parse(running.startedAt)) / 1000)}`}
-            accessibilityRole="timer"
-            style={styles.timer}
-          >
-            {formatDuration((now - Date.parse(running.startedAt)) / 1000)}
+          <Text accessibilityRole="timer" style={styles.timer}>
+            {elapsed}
           </Text>
           <Pressable accessibilityRole="button" onPress={onStop} style={styles.button}>
             <Text style={styles.buttonText}>Stop session</Text>
           </Pressable>
         </>
-      ) : running ? (
-        <Text style={styles.facts}>Another reading session is running. Stop it before starting a new one.</Text>
       ) : (
-        <Pressable accessibilityRole="button" onPress={onStart} style={styles.button}>
-          <Text style={styles.buttonText}>Start reading session</Text>
-        </Pressable>
+        <OtherOrNoSession busy={running !== null} onStart={onStart} />
       )}
     </View>
+  );
+}
+
+function OtherOrNoSession({ busy, onStart }: { busy: boolean; onStart: () => void }) {
+  if (busy) {
+    return <Text style={styles.facts}>Another reading session is running. Stop it before starting a new one.</Text>;
+  }
+  return (
+    <Pressable accessibilityRole="button" onPress={onStart} style={styles.button}>
+      <Text style={styles.buttonText}>Start reading session</Text>
+    </Pressable>
   );
 }
 

@@ -31,7 +31,7 @@ export type ReadingSession = {
 
 /** The Reader tried to start a session while another one is already running. */
 export class SessionAlreadyRunningError extends Error {
-  constructor(readonly runningIsbn: string) {
+  constructor() {
     super('Another reading session is already running. Stop it first.');
     this.name = 'SessionAlreadyRunningError';
   }
@@ -40,7 +40,7 @@ export class SessionAlreadyRunningError extends Error {
 export interface ReadingSessions {
   /** Starts a session on a Book in the Library. Only one session can run at a time. */
   start(isbn: string, at?: Date): Promise<ReadingSession>;
-  /** Ends the running session. Throws if none is running or if it would end before it started. */
+  /** Ends the running session. Throws if none is running. If the clock went backwards it ends at its start. */
   stop(at?: Date): Promise<ReadingSession>;
   /** The running session, if any. It survives the app being closed. */
   running(): Promise<ReadingSession | null>;
@@ -64,7 +64,10 @@ export interface Library {
    * Reading, the last page moves the Book to Read, and going back from the last page returns it to Reading.
    */
   recordPage(isbn: string, page: number): Promise<void>;
-  /** Takes a Book out of the Library. Its saved details stay on the device. Removing an absent Book is a no-op. */
+  /**
+   * Takes a Book out of the Library. Its saved details, Reviews and Reading Sessions stay (ADR-0004),
+   * but a session still running on it is ended now. Removing an absent Book is a no-op.
+   */
   remove(isbn: string): Promise<void>;
   /** Puts a Book on the Want to read Shelf. A Book already in the Library is left untouched. */
   add(book: Book): Promise<void>;
@@ -193,9 +196,11 @@ export async function openStorage(
     return row?.page_count ?? null;
   }
 
+  const SESSION_COLUMNS = 'id, isbn, started_at, ended_at';
+
   async function runningSession(): Promise<ReadingSession | null> {
     const [row] = await database.getAll<SessionRow>(
-      'SELECT id, isbn, started_at, ended_at FROM reading_sessions WHERE ended_at IS NULL',
+      `SELECT ${SESSION_COLUMNS} FROM reading_sessions WHERE ended_at IS NULL`,
     );
     return row ? toSession(row) : null;
   }
@@ -273,7 +278,18 @@ export async function openStorage(
         await writeProgress(isbn, shelf, page);
       },
       async remove(isbn) {
-        await database.run('DELETE FROM library_entries WHERE isbn = ?', [isbn]);
+        await database.exec('BEGIN');
+        try {
+          await database.run('UPDATE reading_sessions SET ended_at = ? WHERE isbn = ? AND ended_at IS NULL', [
+            new Date().toISOString(),
+            isbn,
+          ]);
+          await database.run('DELETE FROM library_entries WHERE isbn = ?', [isbn]);
+          await database.exec('COMMIT');
+        } catch (error) {
+          await database.exec('ROLLBACK');
+          throw error;
+        }
       },
       find: findEntry,
       async add(book) {
@@ -320,12 +336,20 @@ export async function openStorage(
         await requireEntry(isbn);
         const running = await runningSession();
         if (running) {
-          throw new SessionAlreadyRunningError(running.isbn);
+          throw new SessionAlreadyRunningError();
         }
-        await database.run('INSERT INTO reading_sessions (isbn, started_at) VALUES (?, ?)', [
-          isbn,
-          at.toISOString(),
-        ]);
+        try {
+          await database.run('INSERT INTO reading_sessions (isbn, started_at) VALUES (?, ?)', [
+            isbn,
+            at.toISOString(),
+          ]);
+        } catch (error) {
+          // Another start slipped in between the check and the insert; the unique index caught it.
+          if (error instanceof Error && /unique/i.test(error.message)) {
+            throw new SessionAlreadyRunningError();
+          }
+          throw error;
+        }
         return (await runningSession())!;
       },
       async stop(at = new Date()) {
@@ -333,18 +357,14 @@ export async function openStorage(
         if (!running) {
           throw new Error('No reading session is running.');
         }
-        if (at.toISOString() < running.startedAt) {
-          throw new Error('A reading session cannot end before it started.');
-        }
-        await database.run('UPDATE reading_sessions SET ended_at = ? WHERE id = ?', [
-          at.toISOString(),
-          running.id,
-        ]);
-        return { ...running, endedAt: at.toISOString() };
+        // Timestamps are always written as UTC ISO strings, which sort like the times they stand for.
+        const endedAt = at.toISOString() < running.startedAt ? running.startedAt : at.toISOString();
+        await database.run('UPDATE reading_sessions SET ended_at = ? WHERE id = ?', [endedAt, running.id]);
+        return { ...running, endedAt };
       },
       async list(isbn) {
         const rows = await database.getAll<SessionRow>(
-          'SELECT id, isbn, started_at, ended_at FROM reading_sessions WHERE isbn = ? ORDER BY started_at DESC, id DESC',
+          `SELECT ${SESSION_COLUMNS} FROM reading_sessions WHERE isbn = ? ORDER BY started_at DESC, id DESC`,
           [isbn],
         );
         return rows.map(toSession);

@@ -482,12 +482,25 @@ describe('storage', () => {
       await expect(storage.sessions.stop(T1)).rejects.toThrow(/No reading session is running/);
     });
 
-    it('cannot end before it started', async () => {
+    it('ends at the start time, with no time read, if the clock went backwards', async () => {
       const { storage } = await libraryWith(fellowship);
       await storage.sessions.start(fellowship.isbn, T1);
 
-      await expect(storage.sessions.stop(T0)).rejects.toThrow(/before it started/);
-      expect(await storage.sessions.running()).not.toBeNull();
+      const stopped = await storage.sessions.stop(T0);
+
+      expect(stopped.endedAt).toBe(stopped.startedAt);
+      expect(await storage.sessions.running()).toBeNull();
+    });
+
+    it('ends a running session when its Book is removed, so it cannot block the next one', async () => {
+      const { storage } = await libraryWith(fellowship, hobbit);
+      await storage.sessions.start(fellowship.isbn, T0);
+
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.sessions.running()).toBeNull();
+      expect((await storage.sessions.list(fellowship.isbn))[0].endedAt).not.toBeNull();
+      await expect(storage.sessions.start(hobbit.isbn, T1)).resolves.toMatchObject({ isbn: hobbit.isbn });
     });
 
     it('only starts sessions for Books in the Library', async () => {
