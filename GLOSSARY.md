@@ -49,7 +49,7 @@ A Book suggested to a Reader, ranked on-device from their genres, favorites and 
 _Avoid_: Suggestion, tip
 
 **Favorite**:
-A Book the Reader rated highly or marked as a favorite, used to shape Recommendations.
+A Book the Reader has marked as a favorite. The mark stays when the Book leaves the Library. Recommendations weigh Favorites together with high Ratings.
 _Avoid_: Liked book
 
 **Export**:

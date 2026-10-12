@@ -768,14 +768,24 @@ describe('storage', () => {
       expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
     });
 
-    it('is not a Favorite any more once the Book was removed and added back', async () => {
+    it('is still a Favorite when the Book is removed and added back (ADR-0004: history is kept)', async () => {
       const storage = await libraryWith(fellowship);
       await storage.library.setFavorite(fellowship.isbn, true);
       await storage.library.remove(fellowship.isbn);
+      expect(await storage.library.list()).toEqual([]);
 
       await storage.library.add(fellowship);
 
-      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: false });
+      expect(await storage.library.find(fellowship.isbn)).toMatchObject({ favorite: true });
+    });
+
+    it('lists the Favorite Books, including ones no longer in the Library', async () => {
+      const storage = await libraryWith(fellowship);
+      await storage.library.add({ isbn: '9780000000002', title: 'Other', authors: [], genres: [] });
+      await storage.library.setFavorite(fellowship.isbn, true);
+      await storage.library.remove(fellowship.isbn);
+
+      expect(await storage.library.favoriteIsbns()).toEqual([fellowship.isbn]);
     });
 
     it('refuses to mark a Book that is not in the Library', async () => {

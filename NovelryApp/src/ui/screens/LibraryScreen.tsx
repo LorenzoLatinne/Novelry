@@ -88,7 +88,7 @@ export function LibraryScreen() {
         style={styles.input}
         value={query}
       />
-      <View accessibilityRole="tablist" style={styles.chips}>
+      <View accessibilityRole="tablist" style={[styles.chips, styles.shelfChips]}>
         {SHELF_CHOICES.map((choice) => {
           const selected = shelf === choice.value;
           return (
@@ -103,7 +103,10 @@ export function LibraryScreen() {
             </Pressable>
           );
         })}
+      </View>
+      <View style={styles.chips}>
         <Pressable
+          accessibilityLabel="Favorites only"
           accessibilityRole="checkbox"
           accessibilityState={{ checked: favoritesOnly }}
           onPress={() => setFavoritesOnly((on) => !on)}
@@ -128,7 +131,10 @@ export function LibraryScreen() {
               onPress={() => navigation.navigate('BookDetail', { isbn: entry.isbn })}
               style={styles.row}
             >
-              <Text style={styles.rowTitle}>
+              <Text
+                accessibilityLabel={`${book?.title ?? entry.isbn}${entry.favorite ? ', Favorite' : ''}`}
+                style={styles.rowTitle}
+              >
                 {entry.favorite ? '♥ ' : ''}
                 {book?.title ?? entry.isbn}
               </Text>
@@ -167,6 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 8 },
+  shelfChips: { paddingBottom: 0 },
   chip: {
     minHeight: 44,
     justifyContent: 'center',

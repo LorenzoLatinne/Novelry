@@ -91,13 +91,13 @@ describe('LibraryScreen', () => {
     await render(<RootNavigator services={{ storage, catalog }} />);
     await screen.findByText('The Hobbit');
 
-    await fireEvent.press(screen.getByRole('checkbox', { name: '♥ Favorites' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Favorites only' }));
 
-    expect(screen.getByText(/Dune/)).toBeTruthy();
+    expect(screen.getByText('♥ Dune')).toBeTruthy();
     expect(screen.queryByText('The Hobbit')).toBeNull();
     expect(screen.queryByText('Emma')).toBeNull();
 
-    await fireEvent.press(screen.getByRole('checkbox', { name: '♥ Favorites' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Favorites only' }));
     expect(screen.getByText('The Hobbit')).toBeTruthy();
   });
 });
