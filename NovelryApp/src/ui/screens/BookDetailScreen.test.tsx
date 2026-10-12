@@ -37,6 +37,10 @@ describe('BookDetailScreen', () => {
     await renderDetail(fetch);
 
     expect(await screen.findByText(/You seem to be offline/)).toBeTruthy();
-    expect(screen.getByText('Try again')).toBeTruthy();
+
+    fetch.mockResolvedValue({ ok: true, status: 200, json: async () => fellowship });
+    await fireEvent.press(screen.getByText('Try again'));
+
+    expect(await screen.findByText('The Fellowship of the Ring')).toBeTruthy();
   });
 });

@@ -19,16 +19,26 @@ export function LibraryScreen() {
 
   useEffect(() => {
     // Reload whenever the Library tab regains focus, e.g. after adding a Book.
+    let active = true;
     const load = () =>
       storage.library
         .list()
         .then((entries) =>
           Promise.all(entries.map(async (entry) => ({ entry, book: await storage.books.get(entry.isbn) }))),
         )
-        .then(setRows)
-        .catch(() => setFailed(true));
+        .then((loaded) => {
+          if (active) {
+            setRows(loaded);
+            setFailed(false);
+          }
+        })
+        .catch(() => active && setFailed(true));
     load();
-    return navigation.addListener('focus', load);
+    const unsubscribe = navigation.addListener('focus', load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [storage, navigation]);
 
   if (failed) {

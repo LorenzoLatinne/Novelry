@@ -4,5 +4,6 @@ export const colors = {
   text: '#1E1F3A',
   textMuted: '#5E6078',
   primary: '#3F43B3',
+  onPrimary: '#FFFFFF',
   border: '#DADCEB',
 };

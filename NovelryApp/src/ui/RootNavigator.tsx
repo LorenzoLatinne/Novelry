@@ -1,6 +1,6 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppServicesProvider, type AppServices } from './AppServices';
 import { BookDetailScreen } from './screens/BookDetailScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
@@ -48,7 +48,7 @@ function Tabs() {
   );
 }
 
-function BookDetailRoute({ route }: { route: { params: { isbn: string } } }) {
+function BookDetailRoute({ route }: NativeStackScreenProps<RootStackParamList, 'BookDetail'>) {
   return <BookDetailScreen isbn={route.params.isbn} />;
 }
 

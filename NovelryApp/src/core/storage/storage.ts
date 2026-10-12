@@ -117,26 +117,41 @@ export async function openStorage(
         return row ? toEntry(row) : null;
       },
       async add(book) {
-        await database.run(
-          `INSERT OR REPLACE INTO books
-             (isbn, title, authors, genres, page_count, published_year, cover_url, description)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            book.isbn,
-            book.title,
-            JSON.stringify(book.authors),
-            JSON.stringify(book.genres),
-            book.pageCount ?? null,
-            book.publishedYear ?? null,
-            book.coverUrl ?? null,
-            book.description ?? null,
-          ],
-        );
-        await database.run(
-          `INSERT OR IGNORE INTO library_entries (isbn, shelf, current_page, added_at)
-           VALUES (?, 'want-to-read', 0, ?)`,
-          [book.isbn, new Date().toISOString()],
-        );
+        await database.exec('BEGIN');
+        try {
+          await database.run(
+            `INSERT INTO books
+               (isbn, title, authors, genres, page_count, published_year, cover_url, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(isbn) DO UPDATE SET
+               title = excluded.title,
+               authors = CASE WHEN excluded.authors = '[]' THEN books.authors ELSE excluded.authors END,
+               genres = CASE WHEN excluded.genres = '[]' THEN books.genres ELSE excluded.genres END,
+               page_count = COALESCE(excluded.page_count, books.page_count),
+               published_year = COALESCE(excluded.published_year, books.published_year),
+               cover_url = COALESCE(excluded.cover_url, books.cover_url),
+               description = COALESCE(excluded.description, books.description)`,
+            [
+              book.isbn,
+              book.title,
+              JSON.stringify(book.authors),
+              JSON.stringify(book.genres),
+              book.pageCount ?? null,
+              book.publishedYear ?? null,
+              book.coverUrl ?? null,
+              book.description ?? null,
+            ],
+          );
+          await database.run(
+            `INSERT OR IGNORE INTO library_entries (isbn, shelf, current_page, added_at)
+             VALUES (?, 'want-to-read', 0, ?)`,
+            [book.isbn, new Date().toISOString()],
+          );
+          await database.exec('COMMIT');
+        } catch (error) {
+          await database.exec('ROLLBACK');
+          throw error;
+        }
       },
     },
     books: {

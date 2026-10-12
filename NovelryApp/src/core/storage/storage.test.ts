@@ -167,6 +167,37 @@ describe('storage', () => {
       expect(await storage.books.get('9780000000002')).toBeNull();
     });
 
+    it('keeps richer details already saved when the same Book is added again with fewer', async () => {
+      const storage = await openStorage(createTestDatabase());
+      await storage.library.add({ ...fellowship, description: 'A hobbit sets out.' });
+
+      await storage.library.add({ isbn: fellowship.isbn, title: fellowship.title, authors: [], genres: [] });
+
+      expect(await storage.books.get(fellowship.isbn)).toMatchObject({
+        description: 'A hobbit sets out.',
+        pageCount: 545,
+        authors: fellowship.authors,
+      });
+    });
+
+    it('saves nothing when adding a Book fails part-way', async () => {
+      const database = createTestDatabase();
+      const failing = {
+        ...database,
+        async run(sql: string, params?: (string | number | null)[]) {
+          if (sql.includes('INTO library_entries')) {
+            throw new Error('disk full');
+          }
+          return database.run(sql, params);
+        },
+      };
+      const storage = await openStorage(failing);
+
+      await expect(storage.library.add(fellowship)).rejects.toThrow('disk full');
+
+      expect(await storage.books.get(fellowship.isbn)).toBeNull();
+    });
+
     it('finds the Library Entry for a Book, or none', async () => {
       const storage = await openStorage(createTestDatabase());
       await storage.library.add(fellowship);

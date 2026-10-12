@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { loadBookDetail, type BookDetail } from '../../core/bookDetail';
 import { CatalogOfflineError } from '../../core/catalog/openLibraryCatalog';
@@ -12,34 +12,55 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; detail: BookDetail };
 
+function toErrorState(error: unknown): State {
+  return {
+    kind: 'error',
+    message:
+      error instanceof CatalogOfflineError
+        ? 'You seem to be offline. Connect to the internet to see this book.'
+        : 'This book could not be loaded right now. Please try again.',
+  };
+}
+
 export function BookDetailScreen({ isbn }: { isbn: string }) {
   const { storage, catalog } = useAppServices();
   const [state, setState] = useState<State>({ kind: 'loading' });
 
-  const load = useCallback(async () => {
-    setState({ kind: 'loading' });
-    try {
-      const detail = await loadBookDetail({ storage, catalog }, isbn);
-      setState(detail ? { kind: 'ready', detail } : { kind: 'not-found' });
-    } catch (error) {
-      setState({
-        kind: 'error',
-        message:
-          error instanceof CatalogOfflineError
-            ? 'You seem to be offline. Connect to the internet to see this book.'
-            : 'This book could not be loaded right now. Please try again.',
-      });
-    }
-  }, [storage, catalog, isbn]);
+  const [addFailed, setAddFailed] = useState(false);
+  const latestRequest = useRef(0);
+
+  const load = useCallback(
+    async ({ quiet = false }: { quiet?: boolean } = {}) => {
+      const request = ++latestRequest.current;
+      const isCurrent = () => latestRequest.current === request;
+      if (!quiet) {
+        setState({ kind: 'loading' });
+      }
+      try {
+        const detail = await loadBookDetail({ storage, catalog }, isbn);
+        if (isCurrent()) {
+          setState(detail ? { kind: 'ready', detail } : { kind: 'not-found' });
+        }
+      } catch (error) {
+        if (isCurrent()) {
+          setState(toErrorState(error));
+        }
+      }
+    },
+    [storage, catalog, isbn],
+  );
 
   useEffect(() => {
     load();
+    return () => {
+      latestRequest.current++; // ignore any answer that arrives after we are gone
+    };
   }, [load]);
 
   if (state.kind === 'loading') {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator accessibilityLabel="Loading" color={colors.primary} />
       </View>
     );
   }
@@ -56,7 +77,7 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
     return (
       <View style={styles.center}>
         <Text style={styles.message}>{state.message}</Text>
-        <Pressable accessibilityRole="button" onPress={load} style={styles.button}>
+        <Pressable accessibilityRole="button" onPress={() => load()} style={styles.button}>
           <Text style={styles.buttonText}>Try again</Text>
         </Pressable>
       </View>
@@ -70,8 +91,13 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
   ].filter(Boolean);
 
   async function addToLibrary() {
-    await storage.library.add(book);
-    await load();
+    setAddFailed(false);
+    try {
+      await storage.library.add(book);
+      await load({ quiet: true });
+    } catch {
+      setAddFailed(true);
+    }
   }
 
   return (
@@ -99,6 +125,11 @@ export function BookDetailScreen({ isbn }: { isbn: string }) {
           <Text style={styles.buttonText}>Add to Library</Text>
         </Pressable>
       )}
+      {addFailed ? (
+        <Text accessibilityLiveRegion="polite" style={styles.message}>
+          Could not add this book. Please try again.
+        </Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -114,5 +145,5 @@ const styles = StyleSheet.create({
   shelf: { fontSize: 16, fontWeight: '600', color: colors.primary, marginTop: 24 },
   message: { fontSize: 16, color: colors.text, textAlign: 'center' },
   button: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, backgroundColor: colors.primary },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
 });
