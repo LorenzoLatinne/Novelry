@@ -69,4 +69,15 @@ describe('LibraryScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Search your Library'), '');
     expect(screen.getByText('The Hobbit')).toBeTruthy();
   });
+
+  it('shows how far along a Book being read is', async () => {
+    const database = createTestDatabase();
+    const storage = await openStorage(database);
+    await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: ['Frank Herbert'], genres: [], pageCount: 400 });
+    await storage.library.recordPage('9780441172719', 100);
+    const catalog = createOpenLibraryCatalog({ fetch: jest.fn() });
+    await render(<RootNavigator services={{ storage, catalog }} />);
+
+    expect(await screen.findByText('Frank Herbert · Reading · 25%')).toBeTruthy();
+  });
 });

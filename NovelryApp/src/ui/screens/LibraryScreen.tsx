@@ -3,8 +3,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { viewLibrary } from '../../core/libraryView';
+import { progressPercent } from '../../core/progress';
 import { SHELF_LABELS, SHELVES, type Shelf } from '../../core/shelf';
-import type { LibraryEntryWithBook } from '../../core/storage/storage';
+import type { Book } from '../../core/catalog/book';
+import type { LibraryEntry, LibraryEntryWithBook } from '../../core/storage/storage';
 import { useAppServices } from '../AppServices';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
@@ -119,7 +121,7 @@ export function LibraryScreen() {
             >
               <Text style={styles.rowTitle}>{book?.title ?? entry.isbn}</Text>
               <Text style={styles.rowMeta}>
-                {[book?.authors.join(', '), SHELF_LABELS[entry.shelf]].filter(Boolean).join(' · ')}
+                {rowMeta(entry, book)}
               </Text>
             </Pressable>
           )}
@@ -127,6 +129,13 @@ export function LibraryScreen() {
       )}
     </View>
   );
+}
+
+function rowMeta(entry: LibraryEntry, book: Book | null): string {
+  const percent = entry.shelf === 'reading' ? progressPercent(entry.currentPage, book?.pageCount) : null;
+  return [book?.authors.join(', '), SHELF_LABELS[entry.shelf], percent === null ? null : `${percent}%`]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 const styles = StyleSheet.create({
