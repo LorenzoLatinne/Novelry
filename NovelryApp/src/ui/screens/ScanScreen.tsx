@@ -1,13 +1,25 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { CameraView, useCameraPermissions, type PermissionResponse } from 'expo-camera';
+import { useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { parseIsbn } from '../../core/isbn';
 import type { RootStackParamList } from '../RootNavigator';
 import { colors } from '../theme';
 
 const NOT_A_BOOK = 'That doesn’t look like a book barcode. Try the barcode on the back cover.';
+const RESCAN_DELAY_MS = 2000;
+const CAMERA_EXPLANATION =
+  'Novelry uses the camera only to scan a book’s barcode (ISBN). Nothing is recorded or stored.';
 const NOT_AN_ISBN = 'That isn’t a valid ISBN. Check the number and try again.';
 
 export function ScanScreen() {
@@ -16,6 +28,14 @@ export function ScanScreen() {
   const [typed, setTyped] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const handled = useRef(false);
+  const rearmTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(rearmTimer.current), []);
+
+  function show(text: string) {
+    setMessage(text);
+    AccessibilityInfo.announceForAccessibility(text);
+  }
 
   function openBook(isbn: string) {
     navigation.replace('BookDetail', { isbn });
@@ -25,37 +45,39 @@ export function ScanScreen() {
     if (handled.current) {
       return;
     }
+    handled.current = true;
     const isbn = parseIsbn(data);
     if (isbn) {
-      handled.current = true;
       openBook(isbn);
       return;
     }
-    handled.current = true;
-    setMessage(NOT_A_BOOK);
+    show(NOT_A_BOOK);
     // Allow another attempt shortly, without re-firing on every camera frame.
-    setTimeout(() => {
+    rearmTimer.current = setTimeout(() => {
       handled.current = false;
-    }, 2000);
+    }, RESCAN_DELAY_MS);
   }
 
   function lookUpTyped() {
+    if (handled.current) {
+      return;
+    }
     const isbn = parseIsbn(typed);
     if (isbn) {
+      handled.current = true;
       openBook(isbn);
     } else {
-      setMessage(NOT_AN_ISBN);
+      show(NOT_AN_ISBN);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Camera
-        granted={permission?.granted ?? false}
-        canAskAgain={permission?.canAskAgain ?? true}
-        onAllow={requestPermission}
-        onScanned={onScanned}
-      />
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scroll}
+    >
+      <CameraOrPrompt permission={permission} onAllow={requestPermission} onScanned={onScanned} />
 
       {message ? (
         <Text accessibilityLiveRegion="assertive" style={styles.error}>
@@ -67,7 +89,8 @@ export function ScanScreen() {
         <Text style={styles.label}>Or type the ISBN</Text>
         <TextInput
           accessibilityLabel="ISBN"
-          keyboardType="number-pad"
+          autoCapitalize="characters"
+          autoCorrect={false}
           onChangeText={(text) => {
             setTyped(text);
             setMessage(null);
@@ -83,17 +106,16 @@ export function ScanScreen() {
           <Text style={styles.buttonText}>Look up</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
-function Camera(props: {
-  granted: boolean;
-  canAskAgain: boolean;
+function CameraOrPrompt(props: {
+  permission: PermissionResponse | null;
   onAllow: () => void;
   onScanned: (data: string) => void;
 }) {
-  if (props.granted) {
+  if (props.permission?.granted) {
     return (
       <CameraView
         accessibilityLabel="Camera. Point it at the barcode on the back of a book."
@@ -106,10 +128,8 @@ function Camera(props: {
 
   return (
     <View style={[styles.camera, styles.rationale]}>
-      <Text style={styles.rationaleText}>
-        Novelry uses your camera only to read the barcode on a book. Nothing is recorded or stored.
-      </Text>
-      {props.canAskAgain ? (
+      <Text style={styles.rationaleText}>{CAMERA_EXPLANATION}</Text>
+      {props.permission?.canAskAgain ?? true ? (
         <Pressable accessibilityRole="button" onPress={props.onAllow} style={styles.button}>
           <Text style={styles.buttonText}>Allow camera</Text>
         </Pressable>
@@ -123,7 +143,8 @@ function Camera(props: {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1, backgroundColor: colors.background },
+  container: { flexGrow: 1, backgroundColor: colors.background },
   camera: { height: 300, backgroundColor: '#000000' },
   rationale: { alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.surface },
   rationaleText: { fontSize: 16, color: colors.text, textAlign: 'center' },

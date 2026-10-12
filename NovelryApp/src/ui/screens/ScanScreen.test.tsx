@@ -34,6 +34,7 @@ async function openScanner() {
 
 beforeEach(() => {
   mockScanned = undefined;
+  mockPermission = null;
   mockRequestPermission.mockReset();
 });
 
@@ -42,7 +43,7 @@ describe('ScanScreen', () => {
     mockPermission = { granted: false, canAskAgain: true };
     await openScanner();
 
-    expect(screen.getByText(/uses your camera only to read the barcode/)).toBeTruthy();
+    expect(screen.getByText(/uses the camera only to scan a book’s barcode/)).toBeTruthy();
     await fireEvent.press(screen.getByText('Allow camera'));
 
     expect(mockRequestPermission).toHaveBeenCalled();
@@ -101,5 +102,16 @@ describe('ScanScreen', () => {
 
     expect(await screen.findByText(/isn’t a valid ISBN/)).toBeTruthy();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts an ISBN-10 that ends in X, typed in lower case', async () => {
+    mockPermission = { granted: false, canAskAgain: true };
+    const fetch = await openScanner();
+
+    await fireEvent.changeText(screen.getByLabelText('ISBN'), '080442957x');
+    await fireEvent.press(screen.getByText('Look up'));
+
+    await screen.findByText('The Fellowship of the Ring');
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('ISBN:9780804429573'), expect.anything());
   });
 });
