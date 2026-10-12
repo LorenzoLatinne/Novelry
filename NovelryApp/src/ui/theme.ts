@@ -6,4 +6,5 @@ export const colors = {
   primary: '#3F43B3',
   onPrimary: '#FFFFFF',
   border: '#DADCEB',
+  error: '#B3261E',
 };

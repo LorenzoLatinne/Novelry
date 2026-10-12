@@ -75,6 +75,13 @@ export function ExploreScreen() {
         style={styles.input}
         value={query}
       />
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => navigation.navigate('Scan')}
+        style={styles.scanLink}
+      >
+        <Text style={styles.scanLinkText}>Scan a barcode instead</Text>
+      </Pressable>
       <Results
         state={state}
         onOpen={(isbn) => navigation.navigate('BookDetail', { isbn })}
@@ -158,6 +165,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
   },
+  scanLink: { marginHorizontal: 16, marginBottom: 8, minHeight: 44, justifyContent: 'center' },
+  scanLinkText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   message: { fontSize: 16, color: colors.textMuted, textAlign: 'center' },
   row: { padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
