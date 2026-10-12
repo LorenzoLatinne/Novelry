@@ -194,4 +194,77 @@ describe('DashboardScreen', () => {
       expect(await storage.goals.getDailyMinutes()).toBeNull();
     });
   });
+
+  describe('stats and the current session', () => {
+    const advance = (ms: number) =>
+      act(async () => {
+        jest.advanceTimersByTime(ms);
+      });
+
+    it('shows how many Books were read this year', async () => {
+      await openDashboard({ finishedBooks: 3 });
+
+      expect(await screen.findByText('Read in 2026')).toBeTruthy();
+      expect(screen.getByText('3')).toBeTruthy();
+    });
+
+    it('invites the Reader to set goals when there are none', async () => {
+      await openDashboard();
+
+      expect(await screen.findByText('Set a reading goal for 2026')).toBeTruthy();
+      expect(screen.getByText('Set a daily reading goal')).toBeTruthy();
+      expect(screen.queryByText('Reading now')).toBeNull();
+    });
+
+    it('shows the Book being read, with its time ticking, and its goal progress moving with it', async () => {
+      const storage = await openDashboard({ dailyGoal: 30 });
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719', new Date(Date.now() - 10 * 60 * 1000));
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+
+      expect(await screen.findByText('Reading now')).toBeTruthy();
+      expect(screen.getByText('Dune')).toBeTruthy();
+      expect(screen.getByText('10:00')).toBeTruthy();
+      expect(screen.getByText('10 of 30 minutes today')).toBeTruthy();
+
+      await advance(5_000);
+      expect(screen.getByText('10:05')).toBeTruthy();
+
+      await advance(55_000);
+      expect(screen.getByText('11:00')).toBeTruthy();
+      expect(screen.getByText('11 of 30 minutes today')).toBeTruthy();
+    });
+
+    it('opens the Book being read', async () => {
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.start('9780441172719');
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+
+      await fireEvent.press(await screen.findByText('Open book'));
+
+      expect(await screen.findByText('Your progress')).toBeTruthy();
+    });
+
+    it('rolls over at midnight without anything being reloaded', async () => {
+      jest.setSystemTime(new Date('2026-03-11T22:30:00Z')); // 23:30 in Brussels
+      const storage = await openDashboard();
+      await storage.library.add({ isbn: '9780441172719', title: 'Dune', authors: [], genres: [] });
+      await storage.sessions.addManual(
+        '9780441172719',
+        new Date('2026-03-11T22:00:00Z'),
+        new Date('2026-03-11T22:20:00Z'),
+      );
+      await fireEvent.press(screen.getAllByText('Library')[0]);
+      await fireEvent.press(screen.getAllByText('Dashboard')[0]);
+      expect(await screen.findAllByText('20 min')).toHaveLength(3);
+
+      await advance(61 * 60 * 1000); // past midnight
+
+      expect(screen.getAllByText('0 min')).toHaveLength(1); // today starts again
+      expect(screen.getAllByText('20 min')).toHaveLength(2); // this week and this year carry on
+    });
+  });
 });
