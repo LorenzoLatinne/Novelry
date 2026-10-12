@@ -112,8 +112,8 @@ export function DashboardScreen() {
 
 function yearlyCopy(year: number): GoalCopy {
   return {
-    setHeading: `Reading goal ${year}`,
-    unsetHeading: `Set a reading goal for ${year}`,
+    heading: `Reading goal ${year}`,
+    promptHeading: `Set a reading goal for ${year}`,
     prompt: 'How many books do you want to finish this year?',
     inputLabel: 'Books to read this year',
     placeholder: 'e.g. 12',
@@ -122,13 +122,14 @@ function yearlyCopy(year: number): GoalCopy {
     changeButton: 'Change goal',
     removeButton: 'Remove goal',
     removeTitle: 'Remove your yearly goal?',
+    removeMessage: 'Your finished books are not affected.',
     barLabel: (percent) => `${percent} percent of your yearly goal`,
   };
 }
 
 const DAILY_COPY: GoalCopy = {
-  setHeading: 'Daily reading goal',
-  unsetHeading: 'Set a daily reading goal',
+  heading: 'Daily reading goal',
+  promptHeading: 'Set a daily reading goal',
   prompt: 'How many minutes do you want to read each day?',
   inputLabel: 'Minutes to read each day',
   placeholder: 'e.g. 20',
@@ -137,6 +138,7 @@ const DAILY_COPY: GoalCopy = {
   changeButton: 'Change daily goal',
   removeButton: 'Remove daily goal',
   removeTitle: 'Remove your daily goal?',
+  removeMessage: 'Your reading sessions are not affected.',
   barLabel: (percent) => `${percent} percent of today’s goal`,
 };
 

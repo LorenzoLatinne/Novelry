@@ -98,8 +98,9 @@ export interface ReadingSessions {
 export const MAX_YEARLY_BOOKS_GOAL = 1000;
 export const MAX_DAILY_MINUTES_GOAL = 24 * 60;
 
-const YEARLY_BOOKS = 'yearly-books';
-const DAILY_MINUTES = 'daily-minutes';
+type GoalKind = 'yearly-books' | 'daily-minutes';
+const YEARLY_BOOKS: GoalKind = 'yearly-books';
+const DAILY_MINUTES: GoalKind = 'daily-minutes';
 
 /** The goal target given cannot be saved. */
 export class InvalidGoalError extends Error {
@@ -328,12 +329,12 @@ export async function openStorage(
   const REVIEW_COLUMNS = 'isbn, rating, comment, created_at, updated_at';
   const SESSION_COLUMNS = 'id, isbn, started_at, ended_at';
 
-  async function getGoal(kind: string): Promise<number | null> {
+  async function getGoal(kind: GoalKind): Promise<number | null> {
     const [row] = await database.getAll<{ target: number }>('SELECT target FROM goals WHERE kind = ?', [kind]);
     return row?.target ?? null;
   }
 
-  async function setGoal(kind: string, target: number, max: number, description: string): Promise<void> {
+  async function setGoal(kind: GoalKind, target: number, max: number, description: string): Promise<void> {
     if (!Number.isInteger(target) || target < 1 || target > max) {
       throw new InvalidGoalError(`The goal must be ${description}.`);
     }
@@ -343,7 +344,7 @@ export async function openStorage(
     );
   }
 
-  async function removeGoal(kind: string): Promise<void> {
+  async function removeGoal(kind: GoalKind): Promise<void> {
     await database.run('DELETE FROM goals WHERE kind = ?', [kind]);
   }
 

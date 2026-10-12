@@ -11,8 +11,10 @@ export type GoalProgressView = {
 
 /** Everything the Reader reads on a goal card, so one card serves every kind of goal. */
 export type GoalCopy = {
-  setHeading: string;
-  unsetHeading: string;
+  /** Heading while a goal is set. */
+  heading: string;
+  /** Heading that invites the Reader to set a goal. */
+  promptHeading: string;
   prompt: string;
   inputLabel: string;
   placeholder: string;
@@ -21,6 +23,7 @@ export type GoalCopy = {
   changeButton: string;
   removeButton: string;
   removeTitle: string;
+  removeMessage: string;
   barLabel: (percent: number) => string;
 };
 
@@ -66,7 +69,7 @@ export function GoalCard({
   }
 
   function confirmRemove() {
-    Alert.alert(copy.removeTitle, 'Your reading is not affected.', [
+    Alert.alert(copy.removeTitle, copy.removeMessage, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => setError(await onRemove()) },
     ]);
@@ -77,7 +80,7 @@ export function GoalCard({
   return (
     <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.title}>
-        {progress ? copy.setHeading : copy.unsetHeading}
+        {progress ? copy.heading : copy.promptHeading}
       </Text>
       {progress ? (
         <>
@@ -113,11 +116,21 @@ export function GoalCard({
             style={styles.input}
             value={text}
           />
-          <Pressable accessibilityRole="button" onPress={save} style={styles.button}>
+          <Pressable
+            accessibilityLabel={`${progress ? 'Save' : copy.setButton}: ${copy.inputLabel}`}
+            accessibilityRole="button"
+            onPress={save}
+            style={styles.button}
+          >
             <Text style={styles.buttonText}>{progress ? 'Save' : copy.setButton}</Text>
           </Pressable>
           {progress ? (
-            <Pressable accessibilityRole="button" onPress={cancelEditing} style={styles.linkButton}>
+            <Pressable
+              accessibilityLabel={`Cancel changing: ${copy.inputLabel}`}
+              accessibilityRole="button"
+              onPress={cancelEditing}
+              style={styles.linkButton}
+            >
               <Text style={styles.linkText}>Cancel</Text>
             </Pressable>
           ) : null}

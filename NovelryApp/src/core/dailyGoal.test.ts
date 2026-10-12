@@ -64,4 +64,12 @@ describe('dailyGoalProgress', () => {
 
     expect(dailyGoalProgress(30, sessions, new Date('2026-03-12T08:00:00Z'), BRUSSELS).minutesRead).toBe(0);
   });
+
+  it('does not show 100% until the goal is actually reached', () => {
+    const sessions = [session('2026-03-11T08:00:00Z', '2026-03-11T08:59:00Z')]; // 59 of 60 minutes
+
+    expect(dailyGoalProgress(60, sessions, now, BRUSSELS)).toMatchObject({ percent: 98, reached: false });
+    const almost = [session('2026-03-11T06:00:00Z', '2026-03-11T10:59:00Z')]; // 299 of 300 minutes
+    expect(dailyGoalProgress(300, almost, now, BRUSSELS)).toMatchObject({ percent: 99, reached: false });
+  });
 });

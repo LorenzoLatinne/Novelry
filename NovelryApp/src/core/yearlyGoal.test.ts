@@ -60,4 +60,10 @@ describe('yearlyGoalProgress', () => {
     expect(yearlyGoalProgress(20, finishes, now, BRUSSELS).finished).toBe(1);
     expect(yearlyGoalProgress(5, finishes, now, BRUSSELS).finished).toBe(1);
   });
+
+  it('does not show 100% until the goal is actually reached', () => {
+    const finishes = Array.from({ length: 199 }, (_, i) => finish(String(i), '2026-03-01T10:00:00Z'));
+
+    expect(yearlyGoalProgress(200, finishes, now, BRUSSELS)).toMatchObject({ percent: 99, reached: false });
+  });
 });

@@ -1,3 +1,4 @@
+import { percentOf } from './percent';
 import { readingTime } from './readingTime';
 import type { ReadingSession } from './storage/storage';
 
@@ -24,7 +25,7 @@ export function dailyGoalProgress(
   return {
     targetMinutes,
     minutesRead,
-    percent: Math.min(100, Math.round((minutesRead / targetMinutes) * 100)),
+    percent: percentOf(minutesRead, targetMinutes),
     reached: minutesRead >= targetMinutes,
   };
 }

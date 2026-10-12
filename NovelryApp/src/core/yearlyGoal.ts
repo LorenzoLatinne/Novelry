@@ -1,4 +1,5 @@
 import { localParts } from './localTime';
+import { percentOf } from './percent';
 
 export type Finish = { isbn: string; finishedAt: string };
 
@@ -33,7 +34,7 @@ export function yearlyGoalProgress(
     year,
     target,
     finished,
-    percent: Math.min(100, Math.round((finished / target) * 100)),
+    percent: percentOf(finished, target),
     reached: finished >= target,
   };
 }

@@ -11,15 +11,20 @@ describe('DashboardScreen', () => {
   beforeEach(() => jest.useFakeTimers({ now: new Date('2026-03-11T12:00:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] }));
   afterEach(() => jest.useRealTimers());
 
-  async function openDashboard(minutesRead?: number, finishedBooks = 0, goal?: number, dailyGoal?: number) {
+  async function openDashboard({
+    minutesRead,
+    finishedBooks = 0,
+    yearlyGoal,
+    dailyGoal,
+  }: { minutesRead?: number; finishedBooks?: number; yearlyGoal?: number; dailyGoal?: number } = {}) {
     const storage = await openStorage(createTestDatabase());
     for (let i = 0; i < finishedBooks; i++) {
       const isbn = `97800000000${i}0`;
       await storage.library.add({ isbn, title: `Book ${i}`, authors: [], genres: [] });
       await storage.library.moveToShelf(isbn, 'read');
     }
-    if (goal) {
-      await storage.goals.setYearlyBooks(goal);
+    if (yearlyGoal) {
+      await storage.goals.setYearlyBooks(yearlyGoal);
     }
     if (dailyGoal) {
       await storage.goals.setDailyMinutes(dailyGoal);
@@ -39,7 +44,7 @@ describe('DashboardScreen', () => {
   }
 
   it('shows how long the Reader read today, this week and this year', async () => {
-    await openDashboard(25);
+    await openDashboard({ minutesRead: 25 });
 
     expect(await screen.findAllByText('25 min')).toHaveLength(3);
     expect(screen.getByText('Today')).toBeTruthy();
@@ -54,7 +59,7 @@ describe('DashboardScreen', () => {
   });
 
   it('shows hours and minutes from an hour on', async () => {
-    await openDashboard(185);
+    await openDashboard({ minutesRead: 185 });
 
     expect(await screen.findAllByText('3 h 05 min')).toHaveLength(3);
   });
@@ -63,7 +68,7 @@ describe('DashboardScreen', () => {
     afterEach(() => jest.restoreAllMocks());
 
     it('invites the Reader to set a goal, and shows progress once set', async () => {
-      const storage = await openDashboard(undefined, 2);
+      const storage = await openDashboard({ finishedBooks: 2 });
       expect(await screen.findByText('Set a reading goal for 2026')).toBeTruthy();
 
       await fireEvent.changeText(screen.getByLabelText('Books to read this year'), '8');
@@ -76,14 +81,14 @@ describe('DashboardScreen', () => {
     });
 
     it('shows a reached goal', async () => {
-      await openDashboard(undefined, 3, 3);
+      await openDashboard({ finishedBooks: 3, yearlyGoal: 3 });
 
       expect(await screen.findByText('3 of 3 books')).toBeTruthy();
       expect(screen.getByText('Goal reached. Well done!')).toBeTruthy();
     });
 
     it('changes the target', async () => {
-      const storage = await openDashboard(undefined, 1, 5);
+      const storage = await openDashboard({ finishedBooks: 1, yearlyGoal: 5 });
       await screen.findByText('1 of 5 books');
 
       await fireEvent.press(screen.getByText('Change goal'));
@@ -95,7 +100,7 @@ describe('DashboardScreen', () => {
     });
 
     it('lets the Reader back out of changing the goal', async () => {
-      const storage = await openDashboard(undefined, 1, 5);
+      const storage = await openDashboard({ finishedBooks: 1, yearlyGoal: 5 });
       await screen.findByText('1 of 5 books');
 
       await fireEvent.press(screen.getByText('Change goal'));
@@ -121,7 +126,7 @@ describe('DashboardScreen', () => {
 
     it('removes the goal only after the Reader confirms', async () => {
       const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-      const storage = await openDashboard(undefined, 1, 5);
+      const storage = await openDashboard({ finishedBooks: 1, yearlyGoal: 5 });
       await screen.findByText('1 of 5 books');
 
       await fireEvent.press(screen.getByText('Remove goal'));
@@ -139,7 +144,7 @@ describe('DashboardScreen', () => {
     afterEach(() => jest.restoreAllMocks());
 
     it('invites the Reader to set a daily goal, and shows today’s progress once set', async () => {
-      const storage = await openDashboard(20);
+      const storage = await openDashboard({ minutesRead: 20 });
       expect(await screen.findByText('Set a daily reading goal')).toBeTruthy();
 
       await fireEvent.changeText(screen.getByLabelText('Minutes to read each day'), '30');
@@ -152,7 +157,7 @@ describe('DashboardScreen', () => {
     });
 
     it('shows a reached daily goal', async () => {
-      await openDashboard(45, 0, undefined, 30);
+      await openDashboard({ minutesRead: 45, dailyGoal: 30 });
 
       expect(await screen.findByText('45 of 30 minutes today')).toBeTruthy();
       expect(screen.getByText('Goal reached. Well done!')).toBeTruthy();
@@ -160,7 +165,7 @@ describe('DashboardScreen', () => {
 
     it('changes and removes the daily goal without touching the yearly goal', async () => {
       const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-      const storage = await openDashboard(undefined, 0, 5, 30);
+      const storage = await openDashboard({ yearlyGoal: 5, dailyGoal: 30 });
       await screen.findByText('0 of 30 minutes today');
 
       await fireEvent.press(screen.getByText('Change daily goal'));
