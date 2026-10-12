@@ -30,6 +30,8 @@ export type Review = {
   updatedAt: string;
 };
 
+export const MIN_RATING = 1;
+export const MAX_RATING = 5;
 export const MAX_REVIEW_COMMENT_LENGTH = 500;
 
 /** The Rating or comment given cannot be saved. */
@@ -252,6 +254,7 @@ export async function openStorage(
     return row?.page_count ?? null;
   }
 
+  const REVIEW_COLUMNS = 'isbn, rating, comment, created_at, updated_at';
   const SESSION_COLUMNS = 'id, isbn, started_at, ended_at';
 
   async function runningSession(): Promise<ReadingSession | null> {
@@ -453,11 +456,11 @@ export async function openStorage(
     },
     reviews: {
       async save(isbn, { rating, comment }, at = new Date()) {
-        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-          throw new InvalidReviewError('The Rating must be a whole number from 1 to 5.');
+        if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
+          throw new InvalidReviewError(`The Rating must be a whole number from ${MIN_RATING} to ${MAX_RATING}.`);
         }
-        const text = comment.trim();
-        if (text.length > MAX_REVIEW_COMMENT_LENGTH) {
+        const trimmedComment = comment.trim();
+        if (trimmedComment.length > MAX_REVIEW_COMMENT_LENGTH) {
           throw new InvalidReviewError(`The comment can be at most ${MAX_REVIEW_COMMENT_LENGTH} characters.`);
         }
         await requireEntry(isbn);
@@ -466,19 +469,19 @@ export async function openStorage(
           `INSERT INTO reviews (isbn, rating, comment, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
            ON CONFLICT(isbn) DO UPDATE SET rating = excluded.rating, comment = excluded.comment,
                                            updated_at = excluded.updated_at`,
-          [isbn, rating, text, now, now],
+          [isbn, rating, trimmedComment, now, now],
         );
       },
       async get(isbn) {
         const [row] = await database.getAll<ReviewRow>(
-          'SELECT isbn, rating, comment, created_at, updated_at FROM reviews WHERE isbn = ?',
+          `SELECT ${REVIEW_COLUMNS} FROM reviews WHERE isbn = ?`,
           [isbn],
         );
         return row ? toReview(row) : null;
       },
       async all() {
         const rows = await database.getAll<ReviewRow>(
-          'SELECT isbn, rating, comment, created_at, updated_at FROM reviews ORDER BY updated_at DESC, isbn',
+          `SELECT ${REVIEW_COLUMNS} FROM reviews ORDER BY updated_at DESC, isbn`,
         );
         return rows.map(toReview);
       },

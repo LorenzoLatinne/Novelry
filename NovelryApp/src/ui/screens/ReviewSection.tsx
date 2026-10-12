@@ -1,69 +1,58 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
-  InvalidReviewError,
+  MAX_RATING,
   MAX_REVIEW_COMMENT_LENGTH,
+  MIN_RATING,
   type Review,
-  type Storage,
 } from '../../core/storage/storage';
 import { colors } from '../theme';
 
-const RATINGS = [1, 2, 3, 4, 5] as const;
+const RATINGS = Array.from({ length: MAX_RATING - MIN_RATING + 1 }, (_, i) => MIN_RATING + i);
 
-/** The Reader's private Rating and comment on a Book. */
+/** The Reader's private Rating and comment on a Book. Saving and deleting are done by the caller. */
 export function ReviewSection({
-  storage,
-  isbn,
   review,
-  onChanged,
+  onSave,
+  onDelete,
 }: {
-  storage: Storage;
-  isbn: string;
   review: Review | null;
-  onChanged: () => void;
+  /** Resolves to a message to show the Reader (success or why it failed). */
+  onSave: (rating: number, comment: string) => Promise<string>;
+  onDelete: () => Promise<string | null>;
 }) {
-  const [rating, setRating] = useState<number>(review?.rating ?? 0);
+  const [rating, setRating] = useState<number | null>(review?.rating ?? null);
   const [comment, setComment] = useState(review?.comment ?? '');
   const [message, setMessage] = useState<string | null>(null);
 
-  // Follow the saved Review when it changes (saved, deleted, or loaded for the first time).
+  // Follow the saved Review when it is saved, deleted or first loaded, but not on unrelated reloads,
+  // which would throw away what the Reader is typing.
+  const savedVersion = review?.updatedAt ?? null;
   useEffect(() => {
-    setRating(review?.rating ?? 0);
+    setRating(review?.rating ?? null);
     setComment(review?.comment ?? '');
-  }, [review]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedVersion]);
+
+  function tell(text: string | null) {
+    setMessage(text);
+    if (text) {
+      AccessibilityInfo.announceForAccessibility(text);
+    }
+  }
 
   async function save() {
-    if (rating === 0) {
-      setMessage('Choose a Rating from 1 to 5 stars.');
+    if (rating === null) {
+      tell(`Choose a Rating from ${MIN_RATING} to ${MAX_RATING} stars.`);
       return;
     }
-    try {
-      await storage.reviews.save(isbn, { rating, comment });
-      setMessage('Review saved.');
-      onChanged();
-    } catch (error) {
-      setMessage(
-        error instanceof InvalidReviewError ? error.message : 'Could not save your review. Please try again.',
-      );
-    }
+    tell(await onSave(rating, comment));
   }
 
   function confirmDelete() {
     Alert.alert('Delete your review?', 'Your Rating and comment will be deleted.', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await storage.reviews.remove(isbn);
-            setMessage(null);
-            onChanged();
-          } catch {
-            setMessage('Could not delete your review. Please try again.');
-          }
-        },
-      },
+      { text: 'Delete', style: 'destructive', onPress: async () => tell(await onDelete()) },
     ]);
   }
 
@@ -74,26 +63,39 @@ export function ReviewSection({
       </Text>
       <Text style={styles.note}>Only you can see this.</Text>
       <View accessibilityRole="radiogroup" style={styles.stars}>
-        {RATINGS.map((value) => (
-          <Pressable
-            key={value}
-            accessibilityLabel={`${value} ${value === 1 ? 'star' : 'stars'}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: rating === value }}
-            onPress={() => setRating(value)}
-            style={styles.star}
-          >
-            <Text style={[styles.starText, value <= rating && styles.starFilled]}>
-              {value <= rating ? '★' : '☆'}
-            </Text>
-          </Pressable>
-        ))}
+        {RATINGS.map((value) => {
+          const filled = rating !== null && value <= rating;
+          return (
+            <Pressable
+              key={value}
+              accessibilityLabel={`${value} ${value === 1 ? 'star' : 'stars'}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: rating === value }}
+              onPress={() => {
+                setRating(value);
+                setMessage(null);
+              }}
+              style={styles.star}
+            >
+              <Text
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={[styles.starText, filled && styles.starFilled]}
+              >
+                {filled ? '★' : '☆'}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
       <TextInput
         accessibilityLabel="Review comment"
         maxLength={MAX_REVIEW_COMMENT_LENGTH}
         multiline
-        onChangeText={setComment}
+        onChangeText={(text) => {
+          setComment(text);
+          setMessage(null);
+        }}
         placeholder="What did you think?"
         placeholderTextColor={colors.textMuted}
         style={styles.comment}
@@ -112,11 +114,7 @@ export function ReviewSection({
           </Pressable>
         ) : null}
       </View>
-      {message ? (
-        <Text accessibilityLiveRegion="polite" style={styles.message}>
-          {message}
-        </Text>
-      ) : null}
+      {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
   );
 }

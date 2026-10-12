@@ -99,4 +99,19 @@ describe('Book detail', () => {
       comment: 'Gripping.',
     });
   });
+
+  it('shows an earlier Review again when the Book is added back to the Library', async () => {
+    const storage = await openStorage(createTestDatabase());
+    const { catalog } = catalogReturning(fellowship);
+    const book = (await loadBookDetail({ storage, catalog }, ISBN))!.book;
+    await storage.library.add(book);
+    await storage.reviews.save(ISBN, { rating: 5, comment: 'Loved it.' });
+    await storage.library.remove(ISBN);
+    await storage.library.add(book);
+
+    const detail = await loadBookDetail({ storage, catalog }, ISBN);
+
+    expect(detail?.review).toMatchObject({ rating: 5, comment: 'Loved it.' });
+    expect(detail?.entry).toMatchObject({ shelf: 'want-to-read' });
+  });
 });

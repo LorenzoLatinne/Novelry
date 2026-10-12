@@ -72,6 +72,41 @@ describe('Review section', () => {
     expect(await storage.reviews.get(ISBN)).toMatchObject({ rating: 5, comment: 'A classic.' });
   });
 
+  it('keeps what the Reader is typing when the screen reloads for another reason', async () => {
+    const storage = await openWithBook();
+    await fireEvent.press(screen.getByRole('radio', { name: '2 stars' }));
+    await fireEvent.press(screen.getByText('Save review'));
+    await screen.findByText('Review saved.');
+
+    await fireEvent.changeText(screen.getByLabelText('Review comment'), 'Still thinking about it');
+    await fireEvent.press(screen.getByRole('radio', { name: 'Reading' })); // reloads the screen
+
+    await screen.findByText('In your Library · Reading');
+    expect(screen.getByLabelText('Review comment').props.value).toBe('Still thinking about it');
+    expect((await storage.reviews.get(ISBN))?.comment).toBe('');
+  });
+
+  it('clears the saved message once the Reader edits again', async () => {
+    await openWithBook();
+    await fireEvent.press(screen.getByRole('radio', { name: '4 stars' }));
+    await fireEvent.press(screen.getByText('Save review'));
+    await screen.findByText('Review saved.');
+
+    await fireEvent.changeText(screen.getByLabelText('Review comment'), 'More thoughts');
+
+    expect(screen.queryByText('Review saved.')).toBeNull();
+  });
+
+  it('says so when the Review cannot be saved', async () => {
+    const storage = await openWithBook();
+    jest.spyOn(storage.reviews, 'save').mockRejectedValue(new Error('disk full'));
+    await fireEvent.press(screen.getByRole('radio', { name: '4 stars' }));
+
+    await fireEvent.press(screen.getByText('Save review'));
+
+    expect(await screen.findByText('Could not save your review. Please try again.')).toBeTruthy();
+  });
+
   it('deletes a Review only after the Reader confirms', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const storage = await openWithBook();
