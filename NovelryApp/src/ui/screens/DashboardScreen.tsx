@@ -1,7 +1,7 @@
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { dashboardView, loadDashboard, type DashboardData } from '../../core/dashboard';
 import { formatDuration } from '../../core/duration';
 import { localParts, msUntilNextLocalDay } from '../../core/localTime';
@@ -18,6 +18,7 @@ export function DashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [now, setNow] = useState(() => new Date());
   const timeZone = deviceTimeZone();
+  const focused = useIsFocused();
 
   const latestLoad = useRef(0);
 
@@ -42,21 +43,35 @@ export function DashboardScreen() {
   }, [reload, navigation]);
 
   // While a session is running its time ticks every second; nothing is loaded again for that.
+  // Timers only run while the Dashboard is on screen; reloading on focus catches everything up.
   const running = data?.runningSession?.id ?? null;
   useEffect(() => {
-    if (running === null) {
+    if (running === null || !focused) {
       return;
     }
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
-  }, [running]);
+  }, [running, focused]);
 
   // The day (and the year) change at the Reader's midnight, even if nothing else happens.
   const today = localParts(now.getTime(), timeZone).day;
   useEffect(() => {
+    if (!focused) {
+      return;
+    }
     const timer = setTimeout(() => setNow(new Date()), msUntilNextLocalDay(new Date(), timeZone) + 1000);
     return () => clearTimeout(timer);
-  }, [today, timeZone]);
+  }, [today, timeZone, focused]);
+
+  // A timer can be paused while the app is in the background: look at the clock again on return.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setNow(new Date());
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const view = useMemo(() => (data ? dashboardView(data, now, timeZone) : null), [data, now, timeZone]);
 
@@ -80,21 +95,22 @@ export function DashboardScreen() {
     }
   }
 
+  const currentSession = view?.currentSession ?? null;
   const yearlyGoal = view?.yearlyGoal ?? null;
   const dailyGoal = view?.dailyGoal ?? null;
 
   return (
     <ScrollView contentContainerStyle={styles.container} style={styles.scroll}>
-      {view?.currentSession ? (
-        <View accessible style={styles.nowCard}>
+      {currentSession ? (
+        <View style={styles.nowCard}>
           <Text style={styles.nowLabel}>Reading now</Text>
-          <Text style={styles.nowTitle}>{view.currentSession.title}</Text>
+          <Text style={styles.nowTitle}>{currentSession.title}</Text>
           <Text accessibilityRole="timer" style={styles.nowTime}>
-            {formatDuration(view.currentSession.elapsedSeconds)}
+            {formatDuration(currentSession.elapsedSeconds)}
           </Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate('BookDetail', { isbn: view.currentSession!.isbn })}
+            onPress={() => navigation.navigate('BookDetail', { isbn: currentSession.isbn })}
             style={styles.nowButton}
           >
             <Text style={styles.nowButtonText}>Open book</Text>
