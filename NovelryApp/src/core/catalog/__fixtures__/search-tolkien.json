@@ -1,0 +1,89 @@
+{
+  "numFound": 70,
+  "start": 0,
+  "numFoundExact": true,
+  "num_found": 70,
+  "documentation_url": "https://openlibrary.org/dev/docs/api/search",
+  "q": "tolkien fellowship",
+  "offset": null,
+  "docs": [
+    {
+      "author_name": [
+        "J.R.R. Tolkien"
+      ],
+      "cover_i": 14627060,
+      "first_publish_year": 1954,
+      "isbn": [
+        "9781500410223",
+        "9781484482353",
+        "8611162447",
+        "9780007203543",
+        "0345339703",
+        "9780008537777"
+      ],
+      "key": "/works/OL27513W",
+      "number_of_pages_median": 492,
+      "title": "The Fellowship of the Ring",
+      "subject": [
+        "Elves",
+        "Dwarves",
+        "evil",
+        "fear",
+        "hope",
+        "young adult fiction"
+      ]
+    },
+    {
+      "author_name": [
+        "J.R.R. Tolkien"
+      ],
+      "cover_i": 14625765,
+      "first_publish_year": 1954,
+      "isbn": [
+        "4566023621",
+        "0898452236",
+        "0044406797",
+        "9780061917813",
+        "8020409262",
+        "8845294773"
+      ],
+      "key": "/works/OL27448W",
+      "number_of_pages_median": 1193,
+      "title": "The Lord of the Rings",
+      "subject": [
+        "The Lord of the Rings",
+        "Fiction",
+        "Ficci\u00f3n",
+        "English Fantasy fiction",
+        "Ficci\u00f3n fant\u00e1stica inglesa",
+        "Fantasy fiction"
+      ]
+    },
+    {
+      "author_name": [
+        "J.R.R. Tolkien"
+      ],
+      "cover_i": 14627564,
+      "first_publish_year": 1954,
+      "isbn": [
+        "0007123833",
+        "2070501418",
+        "9780345272591",
+        "000732250X",
+        "0261102931",
+        "9789584280343"
+      ],
+      "key": "/works/OL27479W",
+      "number_of_pages_median": 434,
+      "title": "The Two Towers",
+      "subject": [
+        "Ents",
+        "Orcs",
+        "hobbits",
+        "magic",
+        "Ficci\u00f3n fant\u00e1stica inglesa",
+        "Ficci\u00f3n"
+      ]
+    }
+  ]
+}
