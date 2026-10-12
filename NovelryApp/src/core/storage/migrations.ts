@@ -16,4 +16,19 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE books (
+        isbn TEXT PRIMARY KEY NOT NULL,
+        title TEXT NOT NULL,
+        authors TEXT NOT NULL,
+        genres TEXT NOT NULL,
+        page_count INTEGER,
+        published_year INTEGER,
+        cover_url TEXT,
+        description TEXT
+      );
+    `,
+  },
 ];

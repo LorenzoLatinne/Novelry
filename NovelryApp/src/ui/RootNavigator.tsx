@@ -1,11 +1,19 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import type { Storage } from '../core/storage/storage';
+import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppServicesProvider, type AppServices } from './AppServices';
+import { BookDetailScreen } from './screens/BookDetailScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { colors } from './theme';
 
+export type RootStackParamList = {
+  Tabs: undefined;
+  BookDetail: { isbn: string };
+};
+
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const theme = {
   ...DefaultTheme,
@@ -29,15 +37,30 @@ const SettingsScreen = () => (
   <PlaceholderScreen title="Settings" message="Privacy, support and your data." />
 );
 
-export function RootNavigator({ storage }: { storage: Storage }) {
+function Tabs() {
   return (
-    <NavigationContainer theme={theme}>
-      <Tab.Navigator>
-        <Tab.Screen name="Library">{() => <LibraryScreen storage={storage} />}</Tab.Screen>
-        <Tab.Screen name="Explore" component={ExploreScreen} />
-        <Tab.Screen name="Dashboard" component={DashboardScreen} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <Tab.Navigator>
+      <Tab.Screen name="Library" component={LibraryScreen} />
+      <Tab.Screen name="Explore" component={ExploreScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+    </Tab.Navigator>
+  );
+}
+
+function BookDetailRoute({ route }: NativeStackScreenProps<RootStackParamList, 'BookDetail'>) {
+  return <BookDetailScreen isbn={route.params.isbn} />;
+}
+
+export function RootNavigator({ services }: { services: AppServices }) {
+  return (
+    <AppServicesProvider services={services}>
+      <NavigationContainer theme={theme}>
+        <Stack.Navigator>
+          <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+          <Stack.Screen name="BookDetail" component={BookDetailRoute} options={{ title: 'Book' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AppServicesProvider>
   );
 }

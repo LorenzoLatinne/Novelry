@@ -2,9 +2,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { openDeviceDatabase } from './src/core/storage/expoSqliteDatabase';
+import { createOpenLibraryCatalog } from './src/core/catalog/openLibraryCatalog';
 import { openStorage, type Storage } from './src/core/storage/storage';
 import { RootNavigator } from './src/ui/RootNavigator';
 import { colors } from './src/ui/theme';
+
+const catalog = createOpenLibraryCatalog({ fetch });
 
 export default function App() {
   const [storage, setStorage] = useState<Storage | null>(null);
@@ -35,7 +38,7 @@ export default function App() {
 
   return (
     <>
-      <RootNavigator storage={storage} />
+      <RootNavigator services={{ storage, catalog }} />
       <StatusBar style="auto" />
     </>
   );
